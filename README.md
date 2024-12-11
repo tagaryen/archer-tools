@@ -1,5 +1,13 @@
 # archer-tools
-Useful tools written with pure java. Includes ecdsa, sm2, sm3, encryption, excel reader, http(s) client and server etc.
+Useful tools written with pure java. Includes ecdsa, sm2, sm3, encryption, excel reader, http(s) client and server etc.  
+maven:
+``` maven
+        <dependency>
+	  <groupId>io.github.tagaryen</groupId>  
+	  <artifactId>archer-tools</artifactId>  
+	  <version>1.2.5</version>  
+	</dependency>  
+```
 
 ## Asm java bytecode
 see [AsyncProxy.java](https://github.com/Archerxy/archer-framework/blob/main/src/main/java/com/archer/framework/base/async/AsyncProxy.java) and [TestService.test1](https://github.com/Archerxy/archer-framework/blob/main/src/demos/com/archer/test/run/TestService.java) call Async test3()   
