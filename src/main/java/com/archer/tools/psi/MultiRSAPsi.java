@@ -80,7 +80,6 @@ public class MultiRSAPsi {
 		try {
 			pool.awaitTermination(totalAlive, TimeUnit.MICROSECONDS);
 		} catch (InterruptedException ignore) {}
-		
 		return collectPairs(size, tasks);
 	}
 	

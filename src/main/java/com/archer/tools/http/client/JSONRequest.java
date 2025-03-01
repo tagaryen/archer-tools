@@ -1,6 +1,7 @@
 package com.archer.tools.http.client;
 
 import java.io.UnsupportedEncodingException;
+import java.util.function.Consumer;
 
 import com.archer.net.http.HttpException;
 import com.archer.net.http.HttpStatus;
@@ -77,7 +78,6 @@ public class JSONRequest {
     public static <T> T delete(String httpUrl, Object body, Options options, Class<T> cls) throws Exception {
         return request("DELETE", httpUrl, body, options, cls);
     }
-    
 
 	public static <T> T get(String httpUrl, JavaTypeRef<T> ref) throws Exception {
         return get(httpUrl, null, ref);
@@ -110,6 +110,75 @@ public class JSONRequest {
     public static <T> T delete(String httpUrl, Object body, Options options, JavaTypeRef<T> ref) throws Exception {
         return request("DELETE", httpUrl, body, options, ref);
     }
+    
+    
+    
+
+	public static <T> void getAsync(String httpUrl, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        getAsync(httpUrl, null, ref, callback);
+    }
+
+    public static <T> void postAsync(String httpUrl, Object body, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        postAsync(httpUrl, body, null, ref, callback);
+    }
+
+    public static <T> void putAsync(String httpUrl, Object body, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        putAsync(httpUrl, body, null, ref, callback);
+    }
+
+    public static <T> void deleteAsync(String httpUrl, Object body, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        deleteAsync(httpUrl, body, null, ref, callback);
+    }
+
+    public static <T> void getAsync(String httpUrl, Options options, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        requestAsync("GET", httpUrl, null, options, ref, callback);
+    }
+
+    public static <T> void postAsync(String httpUrl, Object body, Options options, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        requestAsync("POST", httpUrl, body, options, ref, callback);
+    }
+
+    public static <T> void putAsync(String httpUrl, Object body, Options options, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        requestAsync("PUT", httpUrl, body, options, ref, callback);
+    }
+
+    public static <T> void deleteAsync(String httpUrl, Object body, Options options, JavaTypeRef<T> ref, Consumer<T> callback) throws Exception {
+        requestAsync("DELETE", httpUrl, body, options, ref, callback);
+    }
+    
+
+	public static <T> void getAsync(String httpUrl, Class<T> cls, Consumer<T> callback) throws Exception {
+        getAsync(httpUrl, null, cls, callback);
+    }
+
+    public static <T> void postAsync(String httpUrl, Object body, Class<T> cls, Consumer<T> callback) throws Exception {
+        postAsync(httpUrl, body, null, cls, callback);
+    }
+
+    public static <T> void putAsync(String httpUrl, Object body, Class<T> cls, Consumer<T> callback) throws Exception {
+        putAsync(httpUrl, body, null, cls, callback);
+    }
+
+    public static <T> void deleteAsync(String httpUrl, Object body, Class<T> cls, Consumer<T> callback) throws Exception {
+        deleteAsync(httpUrl, body, null, cls, callback);
+    }
+
+    public static <T> void getAsync(String httpUrl, Options options, Class<T> cls, Consumer<T> callback) throws Exception {
+        requestAsync("GET", httpUrl, null, options, cls, callback);
+    }
+
+    public static <T> void postAsync(String httpUrl, Object body, Options options, Class<T> cls, Consumer<T> callback) throws Exception {
+        requestAsync("POST", httpUrl, body, options, cls, callback);
+    }
+
+    public static <T> void putAsync(String httpUrl, Object body, Options options, Class<T> cls, Consumer<T> callback) throws Exception {
+        requestAsync("PUT", httpUrl, body, options, cls, callback);
+    }
+
+    public static <T> void deleteAsync(String httpUrl, Object body, Options options, Class<T> cls, Consumer<T> callback) throws Exception {
+        requestAsync("DELETE", httpUrl, body, options, cls, callback);
+    }
+
 	
     public static <T> T request(String method, String httpUrl, Object body, Options option, JavaTypeRef<T> ref) 
 			throws UnsupportedEncodingException, XJSONException {
@@ -138,7 +207,11 @@ public class JSONRequest {
 		}
 		byte[] data = new byte[0];
 		if(body != null) {
-			data = XJSONStatic.stringify(body).getBytes(option.getEncoding());
+			if(body instanceof String) {
+				data = ((String) body).getBytes(option.getEncoding());
+			} else {
+				data = XJSONStatic.stringify(body).getBytes(option.getEncoding());
+			}
 		}
 		NativeResponse res = NativeRequest.request(method, httpUrl, data, option);
 		String resBody = new String(res.getBody(), option.getEncoding());
@@ -148,21 +221,45 @@ public class JSONRequest {
 		return resBody;
 	}
 	
-	public static String request(String method, String httpUrl, String body, Options option) 
+
+    public static <T> void requestAsync(String method, String httpUrl, Object body, Options option, JavaTypeRef<T> ref, Consumer<T> callback) 
 			throws UnsupportedEncodingException, XJSONException {
-		if(option == null) {
-			option = new Options();
-		}
+    	requestAsync(method, httpUrl, body, option, bodyString -> {
+        	 T resBody = XJSONStatic.parse(bodyString, ref);
+        	 callback.accept(resBody);
+    	});
+	}
+    
+    public static <T> void requestAsync(String method, String httpUrl, Object body, Options option, Class<T> cls, Consumer<T> callback) 
+			throws UnsupportedEncodingException, XJSONException {
+    	requestAsync(method, httpUrl, body, option, bodyString -> {
+	       	 T resBody = XJSONStatic.parse(bodyString, cls);
+	       	 callback.accept(resBody);
+	   	});
+	}
+	
+	public static void requestAsync(String method, String httpUrl, Object body, Options option, Consumer<String> callback) 
+			throws UnsupportedEncodingException, XJSONException {
 		byte[] data = new byte[0];
 		if(body != null) {
-			data = body.getBytes(option.getEncoding());
+			if(body instanceof String) {
+				data = ((String) body).getBytes(option.getEncoding());
+			} else {
+				data = XJSONStatic.stringify(body).getBytes(option.getEncoding());
+			}
 		}
-		NativeResponse res = NativeRequest.request(method, httpUrl, data, option);
-		String resBody = new String(res.getBody(), option.getEncoding());
-		if(res.getStatusCode() != NativeResponse.HTTP_OK) {
-			throw new HttpException(res.getStatusCode(), resBody);
-		}
-		return resBody;
+		String encoding = option == null ? "utf-8": option.getEncoding();
+		NativeRequest.requestAsync(method, httpUrl, data, option, res -> {
+			try {
+				String resBody = new String(res.getBody(), encoding);
+				if(res.getStatusCode() != NativeResponse.HTTP_OK) {
+					throw new HttpException(res.getStatusCode(), resBody);
+				}
+				callback.accept(resBody);
+			} catch (UnsupportedEncodingException e) {
+				throw new HttpException(res.getStatusCode(), e.getLocalizedMessage());
+			}
+		});
 	}
 }
 
