@@ -1,5 +1,7 @@
 package com.archer.tools.bytecode;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -176,6 +178,20 @@ public class ClassBytecode {
 		this.interfaces = interfaces;
 	}
 
+
+    public void readAndDecodeClass(Class<?> cls) throws IOException {
+    	String className = replaceDot2Slash(cls.getName());
+		try(InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(className + ".class")) {
+			Bytes rawClass = new Bytes();
+			byte[] buf = new byte[1024];
+			int off = 0;
+			while((off = in.read(buf)) >= 0) {
+				rawClass.write(buf, 0, off);
+			}
+			decodeClassBytes(rawClass);
+		}
+	}
+	
 	public void decodeClassBytes(Bytes bytes) {
     	this.magic = bytes.readInt32();
     	this.minorVersion = bytes.readInt16();
@@ -285,4 +301,14 @@ public class ClassBytecode {
 			throw new RuntimeException(e);
 		}
 	}
+	
+    public static String replaceDot2Slash(String name) {
+    	byte[] bs = name.getBytes();
+    	for(int i = 0; i < bs.length; i++) {
+    		if('.' == bs[i]) {
+    			bs[i] = '/';
+    		}
+    	}
+    	return new String(bs);
+    }
 }
