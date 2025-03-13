@@ -7,6 +7,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.LinkedList;
@@ -25,7 +26,8 @@ public class ClassUtil {
 	private static Map<Class<?>, ConstructorStuff> constructorCache = new ConcurrentHashMap<>(96);
 	private static List<Class<?>> allClasses;
 
-	public static synchronized List<Class<?>> listAllClasses() {
+	@Deprecated
+	public static synchronized List<Class<?>> jdk8ListAllClasses() {
 		if(allClasses != null) {
 			return allClasses;
 		} else {
@@ -47,6 +49,68 @@ public class ClassUtil {
         }
         
         return allClasses;
+	}
+
+	public static List<Class<?>> listAllClasses() {
+		if(allClasses != null) {
+			return allClasses;
+		} else {
+			allClasses = new LinkedList<>();
+		}
+		
+		PathUtil.getCurrentWorkDir();
+		List<Class<?>> classes = new LinkedList<>();
+		URL[] urls = getClassPathURL();
+        for (URL url : urls) {
+        	String path = url.getPath();
+        	try {
+            	if(new File(path).isDirectory()) {
+            		classes.addAll(getClassesFromPath(path, null));
+            	} else if(path.endsWith(".jar")) {
+            		classes.addAll(getClassesFromJar(path));
+            	}
+        	} catch(Exception ignore) {}
+        }
+        
+        return classes;
+	}
+
+	private static URL[] getClassPathURL() {
+        String cp = System.getProperty("java.class.path");
+		ArrayList<URL> path = new ArrayList<>();
+        int off = 0, next = -1;
+        do {
+        	try {
+                next = cp.indexOf(File.pathSeparator, off);
+                String element = (next == -1)
+                    ? cp.substring(off)
+                    : cp.substring(off, next);
+                if (!element.isEmpty()) {
+                	File file = new File(element).getCanonicalFile();
+                    String filepath = file.getAbsolutePath();
+                    if (!filepath.startsWith("/")) {
+                    	filepath = "/" + filepath;
+                    }
+                    if (!filepath.endsWith("/") && file.isDirectory()) {
+                    	filepath = filepath + "/";
+                    }
+                    URL url = new URL("file", "", filepath);
+                    if (url != null) {
+                    	path.add(url);
+                    }
+                }
+                off = next + 1;
+        	} catch(Exception e) {
+        		e.printStackTrace();
+        	}
+        } while (next != -1);
+
+        int size = path.size();
+        ArrayDeque<URL> unopenedUrls = new ArrayDeque<>(size);
+        for (int i = 0; i < size; i++) {
+            unopenedUrls.add(path.get(i));
+        }
+        return path.toArray(new URL[0]);
 	}
 
 	public static List<Class<?>> getClassesFromPath(String path, String parentPkg) {

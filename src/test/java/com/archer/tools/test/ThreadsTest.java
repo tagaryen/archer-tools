@@ -51,7 +51,7 @@ public class ThreadsTest {
 		for(int i = 0; i < 5; i++) {
 			multi.submit((p) -> {
 				try {
-					Thread.sleep(r.nextInt(200, 500));
+					Thread.sleep(r.nextInt(200) + 200);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}

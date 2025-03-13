@@ -170,7 +170,6 @@ public class ClassBytecode {
 	}
 
 	public void setClassName(String className) {
-		String oldName = this.rawClassName;
 		if(className.indexOf('.') == -1 && className.indexOf('/') == -1) {
 			if(className.equals(this.simpleName)) {
 				throw new BytecodeException("duplicated calss name " + className);
@@ -187,7 +186,7 @@ public class ClassBytecode {
 			}
 			this.rawClassName = className;
 			this.className = DescriptorUtil.replaceSlash2Dot(className);
-	        this.simpleName = className.substring(className.indexOf('/') + 1);
+	        this.simpleName = className.substring(className.lastIndexOf('/') + 1);
 		} else if(className.indexOf('/') == -1) {
 			if(className.equals(this.className)) {
 				throw new BytecodeException("duplicated class name " + className);
@@ -197,12 +196,7 @@ public class ClassBytecode {
 			}
 			this.className = className;
 			this.rawClassName = DescriptorUtil.replaceDot2Slash(className);
-	        this.simpleName = className.substring(className.indexOf('.') + 1);
-		}
-		if(oldName == null) {
-			this.constantPool.addName(this.rawClassName);
-		} else {
-			this.constantPool.resetUtf8Name(oldName, this.rawClassName);
+	        this.simpleName = className.substring(className.lastIndexOf('.') + 1);
 		}
 	}
 
@@ -383,8 +377,8 @@ public class ClassBytecode {
         ConstantClass clazz = (ConstantClass) cpInfo[classIndex];
         ConstantUtf8 className = (ConstantUtf8) cpInfo[clazz.getNameIndex()];
         this.rawClassName = className.getValue();
-        this.className = className.getValue().replaceAll("/", ".");
-        this.simpleName = this.className.substring(this.className.indexOf('.') + 1);
+        this.className = DescriptorUtil.replaceSlash2Dot(className.getValue());
+        this.simpleName = this.className.substring(this.className.lastIndexOf('.') + 1);
         
         //获取父类信息
         this.superIndex = bytes.readInt16();
@@ -483,35 +477,7 @@ public class ClassBytecode {
 	
 	public ClassBytecode generateImplClass(String name) {
 		ClassBytecode newcls = new ClassBytecode();
-		if(name.indexOf('.') == -1 && name.indexOf('/') == -1) {
-			if(name.equals(this.simpleName)) {
-				throw new BytecodeException("duplicated calss name " + className);
-			}
-			newcls.simpleName = name;
-			newcls.className = this.className.substring(0, this.className.lastIndexOf('.') + 1) + name;
-			newcls.rawClassName = this.rawClassName.substring(0, this.rawClassName.lastIndexOf('/') + 1) + name;
-		} else if(name.indexOf('.') == -1) {
-			if(name.equals(this.rawClassName)) {
-				throw new BytecodeException("duplicated class name " + name);
-			}
-			if(this.rawClassName != null && !this.rawClassName.substring(0, this.rawClassName.lastIndexOf('/')).equals(name.substring(0, name.lastIndexOf('/')))) {
-				throw new BytecodeException("new class must be in the save package with old class");
-			}
-			newcls.rawClassName = name;
-			newcls.className = DescriptorUtil.replaceSlash2Dot(name);
-			newcls.simpleName = name.substring(name.indexOf('/') + 1);
-		} else if(name.indexOf('/') == -1) {
-			if(name.equals(this.className)) {
-				throw new BytecodeException("duplicated class name " + name);
-			}
-			if(this.className != null && !this.className.substring(0, this.className.lastIndexOf('/')).equals(name.substring(0, name.lastIndexOf('/')))) {
-				throw new BytecodeException("new class must be in the save package with old class");
-			}
-			newcls.className = name;
-			newcls.rawClassName = DescriptorUtil.replaceDot2Slash(name);
-			newcls.simpleName = name.substring(name.indexOf('.') + 1);
-		}
-		
+		newcls.setClassName(name);
 		newcls.setMagic(getMagic());
 		newcls.setMinorVersion(getMinorVersion());
 		newcls.setMajorVersion(getMajorVersion());

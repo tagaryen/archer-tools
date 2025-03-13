@@ -11,7 +11,9 @@ public class ConstantPool {
 	private int constantPoolCount;
 	private ConstantInfo[] cpInfo;
 
-    public ConstantPool() {}
+    public ConstantPool() {
+    	this(0, new ConstantInfo[0]);
+    }
 
     public ConstantPool(int constantPoolCount, ConstantInfo[] cpInfo) {
 		this.constantPoolCount = constantPoolCount;
