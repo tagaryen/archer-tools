@@ -23,65 +23,77 @@ import com.archer.tools.bytecode.constantpool.ConstantUtf8;
 
 public class ClassBytecodePrinter {
 
+	public static void print(ClassBytecode bytecode) {
+		printConstantPool(bytecode.getConstantPool());
+		printFields(bytecode.getFields());
+		printMethods(bytecode.getMethods());
+	}
+	
+	private static void printConstantInfo(ConstantInfo info, int i, ConstantInfo[] cpInfo) {
+        switch (info.tag) {
+        case ConstantInfo.CONSTANT_Class:
+        	System.out.println("#"+i+" class         #"+((ConstantClass)info).getNameIndex());
+        	break ;  
+        case ConstantInfo.CONSTANT_Fieldref:
+        	System.out.println("#"+i+" FieldRef      #"+((ConstantMemberRef)info).getClassIndex() + ".#" + ((ConstantMemberRef)info).getNameAndTypeIndex());
+        	break ;
+        case ConstantInfo.CONSTANT_Methodref: {
+        	ConstantClass clazz = ((ConstantClass)cpInfo[((ConstantMemberRef)info).getClassIndex()]);
+        	String className = ((ConstantUtf8)cpInfo[clazz.getNameIndex()]).getValue();
+        	ConstantNameAndType cnt = ((ConstantNameAndType)cpInfo[((ConstantMemberRef)info).getNameAndTypeIndex()]);
+        	String methodName = ((ConstantUtf8)cpInfo[cnt.getNameIndex()]).getValue();
+        	String methodDesc = ((ConstantUtf8)cpInfo[cnt.getDescIndex()]).getValue();
+        	System.out.println("#"+i+" MethodRef     #"+((ConstantMemberRef)info).getClassIndex() + ".#" + ((ConstantMemberRef)info).getNameAndTypeIndex()+ "    //" + className + "."+methodName+":"+methodDesc);
+        	break ;
+        }
+        case ConstantInfo.CONSTANT_InterfaceMethodref:
+        	System.out.println("#"+i+" InterfaceRef  #"+((ConstantMemberRef)info).getClassIndex() + ".#" + ((ConstantMemberRef)info).getNameAndTypeIndex());
+        	break ;
+        case ConstantInfo.CONSTANT_Long:
+        	System.out.println("#"+i+" long          "+((ConstantLong)info).getHighValue() + " " + ((ConstantLong)info).getLowValue());
+        	break ;
+        case ConstantInfo.CONSTANT_Double:
+        	System.out.println("#"+i+" double        "+((ConstantDouble)info).getHighValue() + " " + ((ConstantDouble)info).getLowValue());
+        	break ;
+        case ConstantInfo.CONSTANT_String:
+        	System.out.println("#"+i+" string        "+((ConstantString)info).getNameIndex());
+        	break ;
+        case ConstantInfo.CONSTANT_Integer:
+        	System.out.println("#"+i+" int           "+((ConstantInteger)info).getValue());
+        	break ;
+        case ConstantInfo.CONSTANT_Float:
+        	System.out.println("#"+i+" float         "+((ConstantFloat)info).getValue());
+        	break ;
+        case ConstantInfo.CONSTANT_NameAndType:
+        	ConstantNameAndType cnt = ((ConstantNameAndType)info);
+        	String methodName = ((ConstantUtf8)cpInfo[cnt.getNameIndex()]).getValue();
+        	String methodDesc = ((ConstantUtf8)cpInfo[cnt.getDescIndex()]).getValue();
+        	System.out.println("#"+i+" NameAndType   #"+((ConstantNameAndType)info).getNameIndex() + ".#" +((ConstantNameAndType)info).getDescIndex() + "    //" + methodName +":"+methodDesc);
+        	break ;
+        case ConstantInfo.CONSTANT_Utf8:
+        	System.out.println("#"+i+" utf8          "+((ConstantUtf8)info).getValue());
+        	break ;
+        case ConstantInfo.CONSTANT_MethodHandle:
+        	System.out.println("#"+i+" MethodHandle  #"+((ConstantMethodHandle)info).getReferenceIndex() + ".#" +((ConstantMethodHandle)info).getReferenceKind());
+        	break ;
+        case ConstantInfo.CONSTANT_MethodType:
+        	System.out.println("#"+i+" MethodType    "+((ConstantMethodType)info).getDescType());
+        	break ;
+        case ConstantInfo.CONSTANT_InvokeDynamic:
+        	System.out.println("#"+i+" InvokeDynamic "+((ConstantInvokeDynamic)info).getNameAndTypeIndex() + " "+((ConstantInvokeDynamic)info).getBootstrapMethodAttrIndex());
+        	break ;
+        default:
+            System.out.println("#"+i+" null");
+        }
+	}
+	
     public static void printConstantPool(ConstantPool pool){
     	ConstantInfo[] cpInfo = pool.getCpInfo();
+    	if(cpInfo[0] != null) {
+    		printConstantInfo(cpInfo[0], 0, cpInfo);
+    	}
     	for(int i=1;i< cpInfo.length; i++){
-    		ConstantInfo info = cpInfo[i];
-	        switch (info.tag) {
-	            case ConstantInfo.CONSTANT_Class:
-	            	System.out.println("#"+i+" class         #"+((ConstantClass)info).getNameIndex());
-	            	break ;  
-	            case ConstantInfo.CONSTANT_Fieldref:
-	            	System.out.println("#"+i+" FieldRef      #"+((ConstantMemberRef)info).getClassIndex() + ".#" + ((ConstantMemberRef)info).getNameAndTypeIndex());
-	            	break ;
-	            case ConstantInfo.CONSTANT_Methodref: {
-	            	ConstantClass clazz = ((ConstantClass)cpInfo[((ConstantMemberRef)info).getClassIndex()]);
-	            	String className = ((ConstantUtf8)cpInfo[clazz.getNameIndex()]).getValue();
-	            	ConstantNameAndType cnt = ((ConstantNameAndType)cpInfo[((ConstantMemberRef)info).getNameAndTypeIndex()]);
-	            	String methodName = ((ConstantUtf8)cpInfo[cnt.getNameIndex()]).getValue();
-	            	String methodDesc = ((ConstantUtf8)cpInfo[cnt.getDescIndex()]).getValue();
-	            	System.out.println("#"+i+" MethodRef     #"+((ConstantMemberRef)info).getClassIndex() + ".#" + ((ConstantMemberRef)info).getNameAndTypeIndex()+ "    //" + className + "."+methodName+":"+methodDesc);
-	            	break ;
-	            }
-	            case ConstantInfo.CONSTANT_InterfaceMethodref:
-	            	System.out.println("#"+i+" InterfaceRef  #"+((ConstantMemberRef)info).getClassIndex() + ".#" + ((ConstantMemberRef)info).getNameAndTypeIndex());
-	            	break ;
-	            case ConstantInfo.CONSTANT_Long:
-	            	System.out.println("#"+i+" long          "+((ConstantLong)info).getHighValue() + " " + ((ConstantLong)info).getLowValue());
-	            	break ;
-	            case ConstantInfo.CONSTANT_Double:
-	            	System.out.println("#"+i+" double        "+((ConstantDouble)info).getHighValue() + " " + ((ConstantDouble)info).getLowValue());
-	            	break ;
-	            case ConstantInfo.CONSTANT_String:
-	            	System.out.println("#"+i+" string        "+((ConstantString)info).getNameIndex());
-	            	break ;
-	            case ConstantInfo.CONSTANT_Integer:
-	            	System.out.println("#"+i+" int           "+((ConstantInteger)info).getValue());
-	            	break ;
-	            case ConstantInfo.CONSTANT_Float:
-	            	System.out.println("#"+i+" float         "+((ConstantFloat)info).getValue());
-	            	break ;
-	            case ConstantInfo.CONSTANT_NameAndType:
-	            	ConstantNameAndType cnt = ((ConstantNameAndType)info);
-	            	String methodName = ((ConstantUtf8)cpInfo[cnt.getNameIndex()]).getValue();
-	            	String methodDesc = ((ConstantUtf8)cpInfo[cnt.getDescIndex()]).getValue();
-	            	System.out.println("#"+i+" NameAndType   #"+((ConstantNameAndType)info).getNameIndex() + ".#" +((ConstantNameAndType)info).getDescIndex() + "    //" + methodName +":"+methodDesc);
-	            	break ;
-	            case ConstantInfo.CONSTANT_Utf8:
-	            	System.out.println("#"+i+" utf8          "+((ConstantUtf8)info).getValue());
-	            	break ;
-	            case ConstantInfo.CONSTANT_MethodHandle:
-	            	System.out.println("#"+i+" MethodHandle  #"+((ConstantMethodHandle)info).getReferenceIndex() + ".#" +((ConstantMethodHandle)info).getReferenceKind());
-	            	break ;
-	            case ConstantInfo.CONSTANT_MethodType:
-	            	System.out.println("#"+i+" MethodType    "+((ConstantMethodType)info).getDescType());
-	            	break ;
-	            case ConstantInfo.CONSTANT_InvokeDynamic:
-	            	System.out.println("#"+i+" InvokeDynamic "+((ConstantInvokeDynamic)info).getNameAndTypeIndex() + " "+((ConstantInvokeDynamic)info).getBootstrapMethodAttrIndex());
-	            	break ;
-	            default:
-	                System.out.println("#"+i+" null");
-	        }
+    		printConstantInfo(cpInfo[i], i, cpInfo);
     	}
     }
     

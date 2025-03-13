@@ -2,32 +2,26 @@ package com.archer.tools.bytecode;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import com.archer.net.Bytes;
+import com.archer.tools.bytecode.MemberInfo.AttributeInfo;
+import com.archer.tools.bytecode.MemberInfo.CodeAttribute;
 import com.archer.tools.bytecode.constantpool.ConstantClass;
 import com.archer.tools.bytecode.constantpool.ConstantInfo;
+import com.archer.tools.bytecode.constantpool.ConstantMemberRef;
+import com.archer.tools.bytecode.constantpool.ConstantNameAndType;
 import com.archer.tools.bytecode.constantpool.ConstantPool;
 import com.archer.tools.bytecode.constantpool.ConstantUtf8;
+import com.archer.tools.bytecode.util.DescriptorUtil;
 
 
 public class ClassBytecode {
 	
-	private static ClassLoader loader;
-	private static Method defineClass;
-	
-	static {
-		//defineClass(String name, byte[] b, int off, int len)
-		loader = Thread.currentThread().getContextClassLoader();
-		try {
-			defineClass = ClassLoader.class.getDeclaredMethod("defineClass", String.class, byte[].class, int.class, int.class);
-			defineClass.setAccessible(true);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
+	private static BytecodeClassLoader loader = new BytecodeClassLoader();
 
+	private Class<?> selfCls;
+	
 	private int magic;
     private int minorVersion;
     private int majorVersion;
@@ -47,11 +41,19 @@ public class ClassBytecode {
     
     
     
+    private String rawClassName;
+    private String simpleName;
     private String className;
     private String superClass;
     private String[] interfaces;
     
-	public ClassBytecode() {}
+    private boolean isInterface;
+    
+	public ClassBytecode() {
+		this.fields = new MemberInfo[0];
+		this.methods = new MemberInfo[0];
+		this.interfaces = new String[0];
+	}
 	
 	public int getMagic() {
 		return magic;
@@ -70,6 +72,12 @@ public class ClassBytecode {
 	}
 	public String getClassName() {
 		return className;
+	}
+	public String getRawClassName() {
+		return rawClassName;
+	}
+	public String getSimpleName() {
+		return simpleName;
 	}
 	public String getSuperClass() {
 		return superClass;
@@ -92,8 +100,6 @@ public class ClassBytecode {
 	public MemberInfo[] getMethods() {
 		return methods;
 	}
-	
-	
 	public int getClassIndex() {
 		return classIndex;
 	}
@@ -146,20 +152,14 @@ public class ClassBytecode {
 		this.interfaceIndexArr = interfaceIndexArr;
 	}
 
-	public void setFieldCount(int fieldCount) {
-		this.fieldCount = fieldCount;
-	}
-
 	public void setFields(MemberInfo[] fields) {
 		this.fields = fields;
-	}
-
-	public void setMethodCount(int methodCount) {
-		this.methodCount = methodCount;
+		this.fieldCount = fields.length;
 	}
 
 	public void setMethods(MemberInfo[] methods) {
 		this.methods = methods;
+		this.methodCount = methods.length;
 	}
 
 	public void setClassEnd(ClassEnd classEnd) {
@@ -167,20 +167,189 @@ public class ClassBytecode {
 	}
 
 	public void setClassName(String className) {
-		this.className = className;
-	}
-
-	public void setSuperClass(String superClass) {
-		this.superClass = superClass;
+		String oldName = this.rawClassName;
+		if(className.indexOf('.') == -1 && className.indexOf('/') == -1) {
+			if(this.simpleName.equals(className)) {
+				throw new BytecodeException("duplicated calss name " + className);
+			}
+			this.simpleName = className;
+			this.className = this.className.substring(0, this.className.lastIndexOf('.') + 1) + className;
+			this.rawClassName = this.rawClassName.substring(0, this.rawClassName.lastIndexOf('/') + 1) + className;
+		} else if(className.indexOf('.') == -1) {
+			if(this.rawClassName.equals(className)) {
+				throw new BytecodeException("duplicated class name " + className);
+			}
+			if(!this.rawClassName.substring(0, this.rawClassName.lastIndexOf('/')).equals(className.substring(0, className.lastIndexOf('/')))) {
+				throw new BytecodeException("new class must be in the save package with old class");
+			}
+			this.rawClassName = className;
+			this.className = DescriptorUtil.replaceSlash2Dot(className);
+	        this.simpleName = className.substring(className.indexOf('/') + 1);
+		} else if(className.indexOf('/') == -1) {
+			if(this.className.equals(className)) {
+				throw new BytecodeException("duplicated class name " + className);
+			}
+			if(!this.className.substring(0, this.className.lastIndexOf('/')).equals(className.substring(0, className.lastIndexOf('/')))) {
+				throw new BytecodeException("new class must be in the save package with old class");
+			}
+			this.className = className;
+			this.rawClassName = DescriptorUtil.replaceDot2Slash(className);
+	        this.simpleName = className.substring(className.indexOf('.') + 1);
+		}
+		this.constantPool.resetUtf8Name(oldName, this.rawClassName);
 	}
 
 	public void setInterfaces(String[] interfaces) {
 		this.interfaces = interfaces;
 	}
 
+	public boolean isInterface() {
+		return isInterface;
+	}
 
-    public void readAndDecodeClass(Class<?> cls) throws IOException {
-    	String className = replaceDot2Slash(cls.getName());
+	public void setInterface(boolean isInterface) {
+		this.isInterface = isInterface;
+	}
+
+	public ClassBytecode fillSelfAsEmptyClass(String className, String pkg) {
+		
+		this.simpleName = className;
+		if(pkg.indexOf('.') == -1 && pkg.indexOf('/') == -1) {
+			this.className = pkg + '.' + className;
+			this.rawClassName = pkg + '/' + className;
+		} else if(pkg.indexOf('.') == -1) {
+			this.className = DescriptorUtil.replaceSlash2Dot(pkg) + '.' + className;
+			this.rawClassName = pkg + '/' + className;
+		} else if(pkg.indexOf('/') == -1) {
+			this.className = pkg + '.' + className;
+			this.rawClassName = DescriptorUtil.replaceDot2Slash(pkg) + '/' + className;
+		}
+		
+		setMagic(-889275714);
+		setMinorVersion(0);
+		setMajorVersion(52);
+		setAccessFlag(1);
+		setClassIndex(1);
+		setSuperIndex(3);
+		setInterfaceCount(0);
+		setInterfaceIndexArr(new int[0]);
+
+		
+		int index = 1;
+		ConstantInfo[] constants = new ConstantInfo[256];
+		
+		ConstantClass clazzInfo = new ConstantClass();
+		clazzInfo.setNameIndex(2);
+		constants[index++] = clazzInfo;
+		
+		ConstantUtf8 clazzUtf8Info = new ConstantUtf8();
+		clazzUtf8Info.setValue(rawClassName);
+		constants[index++] = clazzUtf8Info;
+		
+		ConstantClass superInfo = new ConstantClass();
+		superInfo.setNameIndex(4);
+		constants[index++] = superInfo;
+		
+		ConstantUtf8 superUtf8Info = new ConstantUtf8();
+		superUtf8Info.setValue("java/lang/Object");
+		constants[index++] = superUtf8Info;
+
+		ConstantUtf8 mcode = new ConstantUtf8();
+		mcode.setValue("Code");
+		constants[index++] = mcode;
+
+		ConstantUtf8 lnt = new ConstantUtf8();
+		lnt.setValue("LineNumberTable");
+		constants[index++] = lnt;
+
+		ConstantUtf8 lvt = new ConstantUtf8();
+		lvt.setValue("LocalVariableTable");
+		constants[index++] = lvt;
+		
+
+		ConstantUtf8 thi = new ConstantUtf8();
+		thi.setValue("this");
+		constants[index++] = thi;
+		
+		String classTypeName = "L"+rawClassName + ";";
+		ConstantUtf8 thiType = new ConstantUtf8();
+		thiType.setValue(classTypeName);
+		constants[index++] = thiType;
+		
+		int consNameIndex = index;
+		ConstantUtf8 consName = new ConstantUtf8();
+		consName.setValue("<init>");
+		constants[index++] = consName;
+		
+
+		int consDescIndex = index;
+		ConstantUtf8 consDesc = new ConstantUtf8();
+		consDesc.setValue("()V");
+		constants[index++] = consDesc;
+		
+		ConstantMemberRef consMethod = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
+		consMethod.setClassIndex(3);
+		consMethod.setNameAndTypeIndex(index + 1);
+		constants[index++] = consMethod;
+		
+		ConstantNameAndType consNameType = new ConstantNameAndType();
+		consNameType.setNameIndex(consNameIndex);
+		consNameType.setDescIndex(consDescIndex);
+		constants[index++] = consNameType;
+		
+
+		int sourceIndex = index;
+		ConstantUtf8 source = new ConstantUtf8();
+		source.setValue("SourceFile");
+		constants[index++] = source;
+
+		int sourceNameIndex = index;
+		ConstantUtf8 sourceName = new ConstantUtf8();
+		sourceName.setValue(simpleName+".java");
+		constants[index++] = sourceName;
+		
+		ConstantPool cp = new ConstantPool();
+		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
+		cp.setConstantPoolCount(cp.getCpInfo().length);
+		setConstantPool(cp);
+	
+		MemberInfo cons = new MemberInfo();
+		cons.setAccessFlags(1);
+		cons.setName("<init>");
+		cons.setDesc("()V");
+		cons.setNameIndex(consNameIndex);
+		cons.setDescriptorIndex(consDescIndex);
+		
+		CodeAttribute codeAttr = new CodeAttribute();
+		codeAttr.setName("Code");
+		codeAttr.setNameIndex(cp.findName("Code"));
+		codeAttr.setLength(17);
+		codeAttr.setMaxStack(1);
+		codeAttr.setMaxLocals(1);
+		codeAttr.setCode(new byte[] {42, -73, 0, (byte) constantPool.findMethod("<init>", "()V", "java/lang/Object"), -79});
+		
+		codeAttr.setException(new byte[0]);
+		codeAttr.setAttributes(new AttributeInfo[0]);
+		
+		cons.setAttributes(new AttributeInfo[] {codeAttr});
+		setMethods(new MemberInfo[] {cons});
+		
+		ClassEnd end = new ClassEnd();
+		end.setSourceLen(1);
+		end.setSourceIndex(sourceIndex);
+		end.setSourceNop(2);
+		end.setSourceNameIndex(sourceNameIndex);
+		
+		setClassEnd(end);
+		
+		return this;
+	}
+
+	
+    public ClassBytecode readAndDecodeClass(Class<?> cls) throws IOException {
+    	String className = DescriptorUtil.replaceDot2Slash(cls.getName());
+    	this.selfCls = cls;
+    	this.isInterface = this.selfCls.isInterface();
 		try(InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(className + ".class")) {
 			Bytes rawClass = new Bytes();
 			byte[] buf = new byte[1024];
@@ -190,6 +359,7 @@ public class ClassBytecode {
 			}
 			decodeClassBytes(rawClass);
 		}
+		return this;
 	}
 	
 	public void decodeClassBytes(Bytes bytes) {
@@ -206,7 +376,9 @@ public class ClassBytecode {
         this.classIndex = bytes.readInt16();
         ConstantClass clazz = (ConstantClass) cpInfo[classIndex];
         ConstantUtf8 className = (ConstantUtf8) cpInfo[clazz.getNameIndex()];
-        this.className = className.getValue();
+        this.rawClassName = className.getValue();
+        this.className = className.getValue().replaceAll("/", ".");
+        this.simpleName = this.className.substring(this.className.indexOf('.') + 1);
         
         //获取父类信息
         this.superIndex = bytes.readInt16();
@@ -291,24 +463,256 @@ public class ClassBytecode {
 		return opcode;
 	}
 	
-	
 	public Class<?> loadSelfClass() {
+		refreshClassEnd();
 		Bytes codeBs = encodeClassBytes();
 		try {
-			return (Class<?>) defineClass.invoke(loader, className, codeBs.array(), 0, codeBs.available());
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			return loader.defineBytecodeClass(className, codeBs.array(), 0, codeBs.available()); 
+			//return (Class<?>) defineClass.invoke(loader, className, codeBs.array(), 0, codeBs.available());
+		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 	}
 	
-    public static String replaceDot2Slash(String name) {
-    	byte[] bs = name.getBytes();
-    	for(int i = 0; i < bs.length; i++) {
-    		if('.' == bs[i]) {
-    			bs[i] = '/';
+	public ClassBytecode generateImplClass(String name) {
+		ClassBytecode newcls = new ClassBytecode();
+		if(name.indexOf('.') == -1 && name.indexOf('/') == -1) {
+			if(this.simpleName.equals(name)) {
+				throw new BytecodeException("duplicated calss name " + className);
+			}
+			newcls.simpleName = name;
+			newcls.className = this.className.substring(0, this.className.lastIndexOf('.') + 1) + name;
+			newcls.rawClassName = this.rawClassName.substring(0, this.rawClassName.lastIndexOf('/') + 1) + name;
+		} else if(name.indexOf('.') == -1) {
+			if(this.rawClassName.equals(name)) {
+				throw new BytecodeException("duplicated class name " + name);
+			}
+			if(!this.rawClassName.substring(0, this.rawClassName.lastIndexOf('/')).equals(name.substring(0, name.lastIndexOf('/')))) {
+				throw new BytecodeException("new class must be in the save package with old class");
+			}
+			newcls.rawClassName = name;
+			newcls.className = DescriptorUtil.replaceSlash2Dot(name);
+			newcls.simpleName = name.substring(name.indexOf('/') + 1);
+		} else if(name.indexOf('/') == -1) {
+			if(this.className.equals(name)) {
+				throw new BytecodeException("duplicated class name " + name);
+			}
+			if(!this.className.substring(0, this.className.lastIndexOf('/')).equals(name.substring(0, name.lastIndexOf('/')))) {
+				throw new BytecodeException("new class must be in the save package with old class");
+			}
+			newcls.className = name;
+			newcls.rawClassName = DescriptorUtil.replaceDot2Slash(name);
+			newcls.simpleName = name.substring(name.indexOf('.') + 1);
+		}
+		
+		newcls.setMagic(getMagic());
+		newcls.setMinorVersion(getMinorVersion());
+		newcls.setMajorVersion(getMajorVersion());
+		newcls.setAccessFlag(getAccessFlag());
+		newcls.setClassIndex(1);
+		newcls.setSuperIndex(3);
+		newcls.setInterfaceCount(0);
+		newcls.setInterfaceIndexArr(new int[0]);
+
+		
+		int index = 1;
+		ConstantInfo[] constants = new ConstantInfo[256];
+		
+		ConstantClass clazzInfo = new ConstantClass();
+		clazzInfo.setNameIndex(2);
+		constants[index++] = clazzInfo;
+		
+		ConstantUtf8 clazzUtf8Info = new ConstantUtf8();
+		clazzUtf8Info.setValue(newcls.rawClassName);
+		constants[index++] = clazzUtf8Info;
+		
+		if(this.isInterface) {
+			ConstantClass interfaceInfo = new ConstantClass();
+			interfaceInfo.setNameIndex(index+1);
+			constants[index++] = interfaceInfo;
+			
+			ConstantUtf8 interfaceUtf8Info = new ConstantUtf8();
+			interfaceUtf8Info.setValue("java/lang/Object");
+			constants[index++] = interfaceUtf8Info;
+
+			newcls.setInterfaceCount(1);
+			newcls.setInterfaceIndexArr(new int[] {index});
+		}
+		
+		ConstantClass superInfo = new ConstantClass();
+		superInfo.setNameIndex(index+1);
+		constants[index++] = superInfo;
+		
+		ConstantUtf8 superUtf8Info = new ConstantUtf8();
+		superUtf8Info.setValue(this.rawClassName);
+		constants[index++] = superUtf8Info;
+		
+		ConstantUtf8 mcode = new ConstantUtf8();
+		mcode.setValue("Code");
+		constants[index++] = mcode;
+
+		ConstantUtf8 lnt = new ConstantUtf8();
+		lnt.setValue("LineNumberTable");
+		constants[index++] = lnt;
+
+		ConstantUtf8 lvt = new ConstantUtf8();
+		lvt.setValue("LocalVariableTable");
+		constants[index++] = lvt;
+		
+
+		ConstantUtf8 thi = new ConstantUtf8();
+		thi.setValue("this");
+		constants[index++] = thi;
+		
+		String classTypeName = "L"+newcls.rawClassName + ";";
+		ConstantUtf8 thiType = new ConstantUtf8();
+		thiType.setValue(classTypeName);
+		constants[index++] = thiType;
+		
+		int consNameIndex = index;
+		ConstantUtf8 consName = new ConstantUtf8();
+		consName.setValue("<init>");
+		constants[index++] = consName;
+		
+
+		int consDescIndex = index;
+		ConstantUtf8 consDesc = new ConstantUtf8();
+		consDesc.setValue("()V");
+		constants[index++] = consDesc;
+
+		int superInitIndex = index;
+		ConstantMemberRef consMethod = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
+		consMethod.setClassIndex(3);
+		consMethod.setNameAndTypeIndex(index + 1);
+		constants[index++] = consMethod;
+		
+		ConstantNameAndType consNameType = new ConstantNameAndType();
+		consNameType.setNameIndex(consNameIndex);
+		consNameType.setDescIndex(consDescIndex);
+		constants[index++] = consNameType;
+		
+
+		int sourceIndex = index;
+		ConstantUtf8 source = new ConstantUtf8();
+		source.setValue("SourceFile");
+		constants[index++] = source;
+
+		int sourceNameIndex = index;
+		ConstantUtf8 sourceName = new ConstantUtf8();
+		sourceName.setValue(newcls.simpleName+".java");
+		constants[index++] = sourceName;
+		
+		ConstantPool cp = new ConstantPool();
+		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
+		cp.setConstantPoolCount(cp.getCpInfo().length);
+		newcls.setConstantPool(cp);
+	
+		MemberInfo cons = new MemberInfo();
+		cons.setAccessFlags(1);
+		cons.setName("<init>");
+		cons.setDesc("()V");
+		cons.setNameIndex(consNameIndex);
+		cons.setDescriptorIndex(consDescIndex);
+		
+		CodeAttribute codeAttr = new CodeAttribute();
+		codeAttr.setName("Code");
+		codeAttr.setNameIndex(cp.findName("Code"));
+		codeAttr.setLength(17);
+		codeAttr.setMaxStack(1);
+		codeAttr.setMaxLocals(1);
+		codeAttr.setCode(new byte[] {42, -73, (byte) ((superInitIndex >> 8) & 0xff), (byte) (superInitIndex & 0xff), -79});
+		
+		codeAttr.setException(new byte[0]);
+		codeAttr.setAttributes(new AttributeInfo[0]);
+		
+		cons.setAttributes(new AttributeInfo[] {codeAttr});
+		newcls.setMethods(new MemberInfo[] {cons});
+		
+		ClassEnd end = new ClassEnd();
+		end.setSourceLen(1);
+		end.setSourceIndex(sourceIndex);
+		end.setSourceNop(2);
+		end.setSourceNameIndex(sourceNameIndex);
+		
+		newcls.setClassEnd(end);
+		
+		return newcls;
+	}
+	
+	public void addField(String name, Class<?> type, int accessFlag) {
+		addField(name, DescriptorUtil.getClassDescription(type), accessFlag);
+	}
+	
+	public void addField(String name, String typeDesc, int accessFlag) {
+		int fieldIndex = constantPool.addField(name, typeDesc);
+		ConstantMemberRef field = (ConstantMemberRef) constantPool.getCpInfo()[fieldIndex];
+		ConstantNameAndType nameType = (ConstantNameAndType) constantPool.getCpInfo()[field.getNameAndTypeIndex()];
+		MemberInfo[] newFields = new MemberInfo[fields.length + 1];
+		System.arraycopy(fields, 0, newFields, 0, fields.length);
+		MemberInfo newField = new MemberInfo();
+		newField.setAccessFlags(accessFlag);
+		newField.setName(name);
+		newField.setDesc(typeDesc);
+		newField.setNameIndex(nameType.getNameIndex());
+		newField.setDescriptorIndex(nameType.getDescIndex());
+		newField.setAttributes(new AttributeInfo[0]);
+		newFields[newFields.length - 1] = newField;
+		setFields(newFields);
+	}
+	
+	public void addMethod(String name, Class<?>[] params, Class<?> returnType, CodeAttribute codeAttr) {
+    	String[] paramDesces = null;
+    	if(params != null) {
+    		paramDesces = new String[params.length];
+    		for(int i = 0; i < params.length; i++) {
+    			paramDesces[i] = DescriptorUtil.getClassDescription(params[i]);
     		}
     	}
-    	return new String(bs);
-    }
+    	String returnTypeDesc = null;
+    	if(returnType != null) {
+    		returnTypeDesc = DescriptorUtil.getClassDescription(returnType);
+    	}
+    	addMethod(name, paramDesces, returnTypeDesc, codeAttr);
+	}
+	
+	public void addMethod(String name, String[] paramDesces, String returnTypeDesc, CodeAttribute codeAttr) {
+    	String desc = DescriptorUtil.getMethodDescription(paramDesces, returnTypeDesc);
+    	int nameIndex = constantPool.addName(name);
+    	int descIndex = constantPool.addName(desc);
+		MemberInfo[] newMethods = new MemberInfo[methods.length + 1];
+		System.arraycopy(methods, 0, newMethods, 0, methods.length);
+		MemberInfo method = new MemberInfo();
+		method.setAccessFlags(1);
+		method.setName(name);
+		method.setDesc(desc);
+		method.setNameIndex(nameIndex);
+		method.setDescriptorIndex(descIndex);
+		method.setAttributes(new AttributeInfo[] {codeAttr});
+		
+		newMethods[methods.length] = method;
+		
+		setMethods(newMethods);
+	}
+	
+	public void renameMethod(String oldName, String[] paramDesces, String returnTypeDesc, String newName) {
+    	String desc = DescriptorUtil.getMethodDescription(paramDesces, returnTypeDesc);
+		for(int i = 0; i < methods.length; i++) {
+			String theName = ((ConstantUtf8)constantPool.getCpInfo()[methods[i].getNameIndex()]).getValue();
+			String theDesc = ((ConstantUtf8)constantPool.getCpInfo()[methods[i].getDescriptorIndex()]).getValue();
+			if(oldName.equals(theName) && desc.equals(theDesc)) {
+				int newIdx = constantPool.addName(newName);
+				methods[i].setNameIndex(newIdx);
+			}
+		}
+	}
+	
+	public void refreshClassEnd() {
+		int sourceIndex = constantPool.findSourceIndex();
+		classEnd.setSourceIndex(sourceIndex);
+		classEnd.setSourceNameIndex(sourceIndex + 1);
+		if(classEnd.getInnerClassRawNameIndex() > 0) {
+			classEnd.setInnerClassRawNameIndex(sourceIndex + 2);
+		}
+	}
 }

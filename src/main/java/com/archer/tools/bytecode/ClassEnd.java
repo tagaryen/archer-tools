@@ -61,7 +61,9 @@ public class ClassEnd {
 
 
 	public void setInnerClassRawNameIndex(int innerClassRawNameIndex) {
-		this.innerClassRawNameIndex = innerClassRawNameIndex;
+		if(innerClassRawNameIndex > 0) { 
+			this.innerClassRawNameIndex = innerClassRawNameIndex;
+		}
 	}
 
 
@@ -81,17 +83,23 @@ public class ClassEnd {
 
 
 	public void setInnerClassLength(int innerClassLength) {
-		this.innerClassLength = innerClassLength;
+		if(innerClassRawNameIndex > 0) { 
+			this.innerClassLength = innerClassLength;
+		}
 	}
 
 
 	public void setInnerClassCount(int innerClassCount) {
-		this.innerClassCount = innerClassCount;
+		if(innerClassRawNameIndex > 0) { 
+			this.innerClassCount = innerClassCount;
+		}
 	}
 
 
 	public void setInnerClassTable(int[][] innerClassTable) {
-		this.innerClassTable = innerClassTable;
+		if(innerClassRawNameIndex > 0) { 
+			this.innerClassTable = innerClassTable;
+		}
 	}
 
 	public void read(Bytes bytes) {

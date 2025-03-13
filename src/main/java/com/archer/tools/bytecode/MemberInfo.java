@@ -59,11 +59,8 @@ public class MemberInfo {
 		this.descriptorIndex = descriptorIndex;
 	}
 
-	public void setAttributesCount(int attributesCount) {
-		this.attributesCount = attributesCount;
-	}
-
 	public void setAttributes(AttributeInfo[] attributes) {
+		this.attributesCount = attributes.length;
 		this.attributes = attributes;
 	}
 
@@ -154,23 +151,17 @@ public class MemberInfo {
 		public void setMaxLocals(int maxLocals) {
 			this.maxLocals = maxLocals;
 		}
-		public void setCodeLength(int codeLength) {
-			this.codeLength = codeLength;
-		}
 		public void setCode(byte[] code) {
 			this.code = code;
-		}
-		public void setExcepetionTableLength(int excepetionTableLength) {
-			this.excepetionTableLength = excepetionTableLength;
+			this.codeLength = code.length;
 		}
 		public void setException(byte[] exception) {
 			this.exception = exception;
-		}
-		public void setAttributesCount(int attributesCount) {
-			this.attributesCount = attributesCount;
+			this.excepetionTableLength = exception.length / 8;
 		}
 		public void setAttributes(AttributeInfo[] attributes) {
 			this.attributes = attributes;
+			this.attributesCount = attributes.length;
 		}
     	
     }
@@ -255,18 +246,18 @@ public class MemberInfo {
     			CodeAttribute attr = new CodeAttribute();
     			attr.setName(name);
     			attr.setNameIndex(nameIndex);
-    			attr.setLength(bytes.readInt32());
-    			attr.setMaxStack(bytes.readInt16());
-    			attr.setMaxLocals(bytes.readInt16());
-    			attr.setCodeLength(bytes.readInt32());
-    			attr.setCode(bytes.read(attr.codeLength));
+    			attr.setLength(bytes.readInt32()); //4bytes
+    			attr.setMaxStack(bytes.readInt16()); //2bytes
+    			attr.setMaxLocals(bytes.readInt16()); //2bytes
+    			int codeLength = bytes.readInt32();   //4bytes
+    			attr.setCode(bytes.read(codeLength)); //length bytes
     			
-    			attr.setExcepetionTableLength(bytes.readInt16());
+    			int excepetionTableLength = bytes.readInt16();    // 2bytes
     			// 2bytes startPc  2bytes endPc  2bytes handlerPc  2bytes catchType
-    			attr.setException(bytes.read(attr.excepetionTableLength * 8));
+    			attr.setException(bytes.read(excepetionTableLength * 8)); // exLength * 8 bytes
     			
-    			attr.setAttributesCount(bytes.readInt16());
-    			attr.setAttributes(new AttributeInfo[attr.attributesCount]);
+    			int attrCount = bytes.readInt16(); //2bytes
+    			attr.setAttributes(new AttributeInfo[attrCount]);
     			readAttributes(bytes, cpInfo, attr.attributes);
     			
     			attrs[j] = attr;
