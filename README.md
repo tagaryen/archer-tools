@@ -105,6 +105,47 @@ the example shows how to use 'com.archer.tools.bytecode.ClassBytecode' for gener
     }
 ```  
 
+## RPC 
+``` java  
+    ARPCServer server = new ARPCServer("127.0.0.1", 9612);
+    ARPCClient client = new ARPCClient("127.0.0.1", 9612);
+
+    server.registerListener(new ARPCServerListenner<MessageB, MessageC>(MessageB.class, MessageC.class) {
+        @Override
+        public MessageC onMessage(MessageB p) {
+            System.out.println("receive client messageB " + XJSONStatic.stringify(p));
+            return new MessageC();
+    }});
+    server.registerListener(new ARPCServerListenner<MessageA, MessageB>(MessageA.class, MessageB.class) {
+        @Override
+        public MessageB onMessage(MessageA p) {
+            System.out.println("receive client messageA " + XJSONStatic.stringify(p));
+            return new MessageB();
+    }});
+
+    server.start();
+
+    client.registerListener(new ARPCClientListenner<MessageB, MessageC>(MessageB.class, MessageC.class));
+    client.registerListener(new ARPCClientListenner<MessageA, MessageB>(MessageA.class, MessageB.class));
+
+    client.callRemoteAsync(new MessageB(), new ARPCClientCallback<MessageC>() {
+        @Override
+        public void onReturn(MessageC r) {
+            System.out.println("client receive MessageC " + XJSONStatic.stringify(r));
+        }});
+    MessageB b = client.callRemote(new MessageA(), MessageB.class);
+    System.out.println("client receive MessageB " + XJSONStatic.stringify(b));
+
+    try {
+        Thread.sleep(3000);
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    }
+
+    client.close();
+    server.close();
+```  
+
 ## sort algorithm
 ``` java  
     int count = 100000000;
