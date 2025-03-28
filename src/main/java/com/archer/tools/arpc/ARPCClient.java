@@ -36,13 +36,13 @@ public class ARPCClient {
 		this.handler.setExceptionListenner(listenner);
 	}
 	
-	public void registerListener(ARPCClientListenner<?,?> ...listenners) {
-		for(ARPCClientListenner<?,?> listenner: listenners) {
+	public void registerListener(ARPCClientMessageListenner<?,?> ...listenners) {
+		for(ARPCClientMessageListenner<?,?> listenner: listenners) {
 			this.handler.addListenner(listenner);
 		}
 	}
 	
-	protected void setChannelContext(ChannelContext ctx) {
+	protected void active(ChannelContext ctx) {
 		this.ctx = ctx;
 		this.active = true;
 		synchronized(activeLock) {
@@ -62,7 +62,7 @@ public class ARPCClient {
 				return ;
 			}
 			try {
-				activeLock.wait(ARPCClientListenner.TIMEOUT);
+				activeLock.wait(ARPCClientMessageListenner.TIMEOUT);
 			} catch (InterruptedException ignore) {}
 		}
 	}
@@ -72,31 +72,32 @@ public class ARPCClient {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <S, R> R callRemote(S s, Class<R> rcls) {
+	public <Send, Recv> Recv callRemote(Send s, Class<Recv> rcls) {
 		if(!active) {
 			doConnect();
 		}
-		ARPCClientListenner<S, R> listenner = (ARPCClientListenner<S, R>) this.handler.getListenner(rcls);
-		listenner.sendParam(ctx, s);
-		listenner.await();
-		R r = listenner.getResponse();
+		ARPCClientMessageListenner<Send, Recv> listenner = 
+				(ARPCClientMessageListenner<Send, Recv>) handler.getListenner(s.getClass(), rcls);
+		
+		listenner.send(ctx, s);
+		Recv r = listenner.getResponse();
 		if(r == null) {
-			ARPCException ex = listenner.getException();
-			if(listenner.getException() != null) {
+			RuntimeException ex = listenner.getException();
+			if(ex != null) {
 				throw ex;
 			}
-			throw new ARPCException("can not get return with param " + listenner.stringifyObject(s));
+			throw new ARPCException("can not get response from remote");
 		}
 		return r;
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <S, R> void callRemoteAsync(S s, ARPCClientCallback<R> callback) {
+	public <Send, Recv> void callRemoteAsync(Send s, ARPCClientCallback<Recv> callback) {
 		if(!active) {
 			doConnect();
 		}
-		ARPCClientListenner<S, R> listenner = (ARPCClientListenner<S, R>) this.handler.getListenner(callback.getReturnClass());
-		listenner.setCallback(callback);
-		listenner.sendParam(ctx, s);
+		ARPCClientMessageListenner<Send, Recv> listenner = 
+				(ARPCClientMessageListenner<Send, Recv>) this.handler.getListenner(s.getClass(), callback.getRecvClass());
+		listenner.sendAsync(ctx, s, callback);
 	}
 }

@@ -10,17 +10,16 @@ public abstract class ARPCConnectListenner<R> {
 	
 	private XJSON json = new XJSON();
 	
-	public abstract R onConnect();
+	public abstract R genConnectMessage();
 	
 	protected void onConnectSend(ChannelContext ctx) {
-		R r = onConnect();
-		String name = r.getClass().getSimpleName().toLowerCase();
-		String data = json.stringify(r);
+		R r = genConnectMessage();
+		byte[] name = r.getClass().getSimpleName().toLowerCase().getBytes(StandardCharsets.UTF_8);
+		byte[] data = json.stringify(r).getBytes(StandardCharsets.UTF_8);
 		Bytes bytes = new Bytes();
-		bytes.writeInt16(name.length());
-		bytes.write(name.getBytes());
-		bytes.writeInt32(data.length());
-		bytes.write(data.getBytes(StandardCharsets.UTF_8));
+		bytes.writeInt16(name.length);
+		bytes.write(name);
+		bytes.write(data);
 		ctx.toLastOnWrite(bytes);
 	}
 	

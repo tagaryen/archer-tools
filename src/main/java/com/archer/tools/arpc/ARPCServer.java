@@ -12,7 +12,7 @@ public class ARPCServer {
 	private int port;
 	private int threadNums;
 	
-	private ARPCServerHandler handler;
+	private ARPCHandler handler;
 	
 	public ARPCServer(String host, int port) {
 		this(host, port, null);
@@ -27,7 +27,7 @@ public class ARPCServer {
 		this.port = port;
 		this.server = new ServerChannel(ctx);
 		this.threadNums = threadNums;
-		this.handler = new ARPCServerHandler();
+		this.handler = new ARPCHandler();
 	}
 	
 	public void registerConnectListener(ARPCConnectListenner<?> listenner) {
@@ -38,8 +38,8 @@ public class ARPCServer {
 		this.handler.setExceptionListenner(listenner);
 	}
 	
-	public void registerListener(ARPCServerListenner<?,?> ...listenners) {
-		for(ARPCServerListenner<?,?> listenner: listenners) {
+	public void registerListener(ARPCMessageListenner<?,?> ...listenners) {
+		for(ARPCMessageListenner<?,?> listenner: listenners) {
 			this.handler.addListenner(listenner);
 		}
 	}
