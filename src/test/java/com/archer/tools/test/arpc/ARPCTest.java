@@ -88,6 +88,7 @@ public class ARPCTest {
 	
 	public static void clientGmsslTest() {
 		SslContext sslctx = new SslContext(true);
+		sslctx.validateHostname("xuyi_node");
 		try {
 			String basePath = "D:\\projects\\javaProject\\maven\\archer-net\\crt\\gm_cert\\";
 			sslctx.trustCertificateAuth(Files.readAllBytes(Paths.get(basePath + "ca.crt")));
