@@ -10,7 +10,6 @@ import java.net.URLClassLoader;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +30,7 @@ public class ClassUtil {
 		if(allClasses != null) {
 			return allClasses;
 		} else {
-			allClasses = new LinkedList<>();
+			allClasses = new ArrayList<>();
 		}
 		ClassLoader classLoader = ClassLoader.getSystemClassLoader();
         if (classLoader instanceof URLClassLoader) {
@@ -40,9 +39,9 @@ public class ClassUtil {
             	String path = url.getPath();
             	try {
                 	if(new File(path).isDirectory()) {
-                		allClasses.addAll(getClassesFromPath(path, null));
+                		getClassesFromPath(path, null, allClasses);
                 	} else if(path.endsWith(".jar")) {
-                		allClasses.addAll(getClassesFromJar(path));
+                		getClassesFromJar(path, allClasses);
                 	}
             	} catch(Exception ignore) {}
             }
@@ -55,24 +54,22 @@ public class ClassUtil {
 		if(allClasses != null) {
 			return allClasses;
 		} else {
-			allClasses = new LinkedList<>();
+			allClasses = new ArrayList<>(256);
 		}
 		
-		PathUtil.getCurrentWorkDir();
-		List<Class<?>> classes = new LinkedList<>();
 		URL[] urls = getClassPathURL();
         for (URL url : urls) {
         	String path = url.getPath();
         	try {
             	if(new File(path).isDirectory()) {
-            		classes.addAll(getClassesFromPath(path, null));
+            		getClassesFromPath(path, null, allClasses);
             	} else if(path.endsWith(".jar")) {
-            		classes.addAll(getClassesFromJar(path));
+            		getClassesFromJar(path, allClasses);
             	}
         	} catch(Exception ignore) {}
         }
         
-        return classes;
+        return allClasses;
 	}
 
 	private static URL[] getClassPathURL() {
@@ -101,7 +98,7 @@ public class ClassUtil {
                 }
                 off = next + 1;
         	} catch(Exception e) {
-        		e.printStackTrace();
+        		throw new RuntimeException(e);
         	}
         } while (next != -1);
 
@@ -113,8 +110,7 @@ public class ClassUtil {
         return path.toArray(new URL[0]);
 	}
 
-	public static List<Class<?>> getClassesFromPath(String path, String parentPkg) {
-        List<Class<?>> classes = new ArrayList<>();
+	public static void getClassesFromPath(String path, String parentPkg, List<Class<?>> allClasses) {
         File directory = new File(path);
         if(parentPkg == null) {
         	parentPkg = "";
@@ -122,28 +118,24 @@ public class ClassUtil {
         	parentPkg += ".";
         }
         File[] files = directory.listFiles();
-        if(files == null) {
-        	return classes;
+        if(files == null || files.length == 0) {
+        	return ;
         }
         for (File file : files) {
             if (file.getName().endsWith(".class")) {
                 String className = parentPkg + file.getName().substring(0, file.getName().length() - 6);
                 try {
                     Class<?> clazz = Class.forName(className);
-                    classes.add(clazz);
+                    allClasses.add(clazz);
                 } catch (ClassNotFoundException ignore) {}
             } else if(file.isDirectory()) {
-            	
-            	List<Class<?>> subClasses = getClassesFromPath(file.getAbsolutePath(), parentPkg + file.getName());
-            	classes.addAll(subClasses);
+            	getClassesFromPath(file.getAbsolutePath(), parentPkg + file.getName(), allClasses);
             }
         }
-        return classes;
     }
 	
-	public static List<Class<?>> getClassesFromJar(String jarFilePath) throws IOException {
-    	List<Class<?>> classes = new LinkedList<>();
-        try(JarFile jarFile = new JarFile(jarFilePath)) {
+	public static void getClassesFromJar(String jarFilePath, List<Class<?>> allClasses) throws IOException {
+    	try(JarFile jarFile = new JarFile(jarFilePath)) {
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
@@ -151,16 +143,15 @@ public class ClassUtil {
                     try {
                     	String className = entry.getName().replace('/', '.').substring(0, entry.getName().length() - 6);
                         Class<?> clazz = Class.forName(className);
-                        classes.add(clazz);
+                        allClasses.add(clazz);
                     } catch (ClassNotFoundException ignore) {}
                 }
             }
         }
-        return classes;
     }
 	
     public static List<Class<?>> findImplementsClass(Class<?> clazz) {
-        List<Class<?>> collected = new LinkedList<>();
+        List<Class<?>> collected = new ArrayList<>();
         List<Class<?>> classes = listAllClasses();
         for(Class<?> cls: classes) {
 			if(clazz.isAssignableFrom(cls) && !cls.isInterface() && !Modifier.isAbstract(cls.getModifiers())) {

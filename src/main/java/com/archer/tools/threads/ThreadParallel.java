@@ -16,7 +16,7 @@ public class ThreadParallel<P, R> {
 	private String namePrefix;
 	private AtomicInteger taskCount;
 	private List<R> resultList;
-	private Exception e;
+	private Exception e = null;
 
 	private Object resultCond = new Object();
 	private Object cond = new Object();
@@ -125,15 +125,18 @@ public class ThreadParallel<P, R> {
 				R ret;
 				try {
 					ret = task.consumer.apply(task.param);
+					pool.resultList.add(ret);
 				} catch(Exception e) {
 					pool.e = e;
-					ret = null;
 				}
-				pool.resultList.add(ret);
 				synchronized(pool.resultCond) {
 					pool.resultCond.notify();
 				}
+				if(pool.e != null) {
+					break;
+				}
 			}
+			pool.running = false;
 	    }
 	}
 }

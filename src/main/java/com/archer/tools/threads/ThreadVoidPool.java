@@ -3,8 +3,7 @@ package com.archer.tools.threads;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
-
-public class ThreadPool<T> {
+public class ThreadVoidPool {
 	
 	private volatile boolean running;
 	private Thread[] threads;
@@ -12,29 +11,29 @@ public class ThreadPool<T> {
 	private Consumer<Exception> exceptionHandler;
 	
 	private Object cond = new Object();
-	private ConcurrentLinkedQueue<PooledTask<T>> queue = new ConcurrentLinkedQueue<>();
+	private ConcurrentLinkedQueue<VoidTask> queue = new ConcurrentLinkedQueue<>();
 	
-	public ThreadPool() {
+	public ThreadVoidPool() {
 		this(2, null);
 	}
 	
-	public ThreadPool(int threadNum) {
-		this(threadNum, ThreadPool.class.getSimpleName());
+	public ThreadVoidPool(int threadNum) {
+		this(threadNum, ThreadVoidPool.class.getSimpleName());
 	}
 	
-	public ThreadPool(int threadNum, String namePrefix) {
+	public ThreadVoidPool(int threadNum, String namePrefix) {
 		this.threads = new Thread[threadNum];
 		this.running = false;
 		this.namePrefix = namePrefix;
 	}
-	
-	public ThreadPool<T> exceptionHandler(Consumer<Exception> exceptionHandler) {
+
+	public ThreadVoidPool exceptionHandler(Consumer<Exception> exceptionHandler) {
 		this.exceptionHandler = exceptionHandler;
 		return this;
 	}
 	
-	public void submit(Consumer<T> consumer, T param) {
-		queue.offer(new PooledTask<T>(param, consumer));
+	public void submit(VoidTask task) {
+		queue.offer(task);
 		synchronized(cond) {
 			cond.notify();
 		}
@@ -47,37 +46,32 @@ public class ThreadPool<T> {
 		}
 		running = true;
 		for(int i = 0; i < threads.length; i++) {
-			threads[i] = new PooledThread<T>(this, i);
+			threads[i] = new PooledThread(this, i);
 			threads[i].start();
 		}
 	}
 	
 	public void stop() {
+		this.running = false;
 		synchronized(cond) {
 			cond.notifyAll();
 		}
-		this.running = false;
 	}
 	
 	public boolean isRunning() {
 		return running;
 	}
+
 	
-	private static class PooledTask<T> {
-		T param;
-		Consumer<T> consumer;
-		
-		public PooledTask(T param, Consumer<T> consumer) {
-			this.param = param;
-			this.consumer = consumer;
-		}
+	public interface VoidTask {
+		void run();
 	}
 	
-	private static class PooledThread<T> extends Thread {
+	private static class PooledThread extends Thread {
 		
-		ThreadPool<T> pool;
+		ThreadVoidPool pool;
 		
-	    public PooledThread(ThreadPool<T> pool, int idx) {
+	    public PooledThread(ThreadVoidPool pool, int idx) {
 	    	super(pool.namePrefix + "-" + idx);
 			this.pool = pool;
 		}
@@ -85,7 +79,7 @@ public class ThreadPool<T> {
 		@Override
 	    public void run() {
 			while(pool.running) {
-				PooledTask<T> task = pool.queue.poll();
+				VoidTask task = pool.queue.poll();
 				if(task == null) {
 					try {
 						synchronized(pool.cond) {
@@ -96,7 +90,7 @@ public class ThreadPool<T> {
 					continue ;
 				}
 				try {
-					task.consumer.accept(task.param);
+					task.run();
 				} catch(Exception e) {
 					if(pool.exceptionHandler != null) {
 						pool.exceptionHandler.accept(e);
@@ -108,4 +102,3 @@ public class ThreadPool<T> {
 	    }
 	}
 }
-

@@ -14,7 +14,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
-public class SimpleXlsxReader {
+public class FastXlsxReader {
 	private static final String XL = "xl/sharedStrings.xml";
 	private static final String SHEET_START = "xl/worksheets/";
 	private static final String SHEET_END = ".xml";
