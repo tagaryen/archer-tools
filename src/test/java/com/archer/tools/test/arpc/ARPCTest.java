@@ -105,6 +105,7 @@ public class ARPCTest {
 	}
 	
 	public static void main(String args[]) {
+//		test();
 //		serverGmsslTest();
 		clientGmsslTest();
 	}

@@ -78,17 +78,23 @@ public class ARPCClient {
 		}
 		ARPCClientMessageListenner<Send, Recv> listenner = 
 				(ARPCClientMessageListenner<Send, Recv>) handler.getListenner(s.getClass(), rcls);
-		
-		listenner.send(ctx, s);
-		Recv r = listenner.getResponse();
-		if(r == null) {
-			RuntimeException ex = listenner.getException();
-			if(ex != null) {
-				throw ex;
-			}
+		ARPCClientCallback<Recv> cb = new ARPCClientCallback<Recv>() {
+			@Override
+			public void onReceive(Recv r) {
+				response = r;
+				synchronized(lock) {
+					lock.notifyAll();
+				}
+			}};
+		listenner.sendAsync(ctx, s, cb);
+		RuntimeException ex = cb.await();
+		if(ex != null) {
+			throw ex;
+		}
+		if(cb.response == null) {
 			throw new ARPCException("can not get response from remote");
 		}
-		return r;
+		return cb.response;
 	}
 	
 	@SuppressWarnings("unchecked")

@@ -1,13 +1,12 @@
 package com.archer.tools.arpc;
 
 import java.nio.charset.StandardCharsets;
-
 import com.archer.net.Bytes;
 import com.archer.net.ChannelContext;
 import com.archer.xjson.XJSON;
 
 public abstract class ARPCMessageListenner<Send, Recv> {
-	
+
 	protected XJSON xjson;
 	
 	private Class<Send> sendCls;
@@ -28,13 +27,14 @@ public abstract class ARPCMessageListenner<Send, Recv> {
 		return recvCls;
 	}
 	
-	protected void handleMessage(ChannelContext ctx, Bytes data) {
+	protected void handleMessage(ChannelContext ctx, byte[] seq, Bytes data) {
 		Send send = onReceiveAndGenerateSend(ctx, xjson.parse(new String(data.readAll(), StandardCharsets.UTF_8), getRecvClass()));
 		if(send == null) {
 			return ;
 		}
 		byte[] name = send.getClass().getSimpleName().toLowerCase().getBytes(StandardCharsets.UTF_8);
 		Bytes output = new Bytes();
+		output.write(seq);
 		output.writeInt16(name.length);
 		output.write(name);
 		output.write(xjson.stringify(send).getBytes(StandardCharsets.UTF_8));

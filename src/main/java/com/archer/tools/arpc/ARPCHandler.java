@@ -65,13 +65,14 @@ class ARPCHandler implements Handler {
 
 	@Override
 	public void onRead(ChannelContext ctx, Bytes input) {
+		byte[] seq = input.read(16);
 		int nameLen = input.readInt16();
 		String name = new String(input.read(nameLen));
 		ARPCMessageListenner<?, ?> listenner = getListennerByRecvMsgName(name);
 		if(listenner == null) {
 			throw new ARPCException("can not found listenner for " + name);
 		}
-		listenner.handleMessage(ctx, input);
+		listenner.handleMessage(ctx, seq, input);
 	}
 	
 	@Override
