@@ -8,7 +8,7 @@ import com.archer.net.handler.Handler;
 
 class ARPCHandler implements Handler {
 
-	private ARPCConnectListenner<?> connectListenner;
+	protected ARPCConnectListenner<?> connectListenner;
 
 	private HashMap<String, ARPCMessageListenner<?,?>> sendMsg = new HashMap<>();
 	

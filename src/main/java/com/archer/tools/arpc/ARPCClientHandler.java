@@ -13,6 +13,9 @@ public class ARPCClientHandler extends ARPCHandler {
 	@Override
 	public void onConnect(ChannelContext ctx) {
 		this.cli.active(ctx);
+		if(this.connectListenner != null) {
+			this.connectListenner.onConnectSend(ctx);
+		}
 	}
 
 	@Override
