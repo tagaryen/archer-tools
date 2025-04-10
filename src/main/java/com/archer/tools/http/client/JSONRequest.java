@@ -1,5 +1,7 @@
 package com.archer.tools.http.client;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import com.archer.net.http.HttpException;
@@ -110,8 +112,6 @@ public class JSONRequest {
         return request("DELETE", httpUrl, body, options, ref);
     }
     
-    
-
 	public static <T> void getAsync(String httpUrl, JavaTypeRef<T> ref, Consumer<T> callback) {
         getAsync(httpUrl, null, ref, callback, null);
     }
@@ -127,6 +127,7 @@ public class JSONRequest {
     public static <T> void deleteAsync(String httpUrl, Object body, JavaTypeRef<T> ref, Consumer<T> callback) {
         deleteAsync(httpUrl, body, null, ref, callback, null);
     }
+    
 	public static <T> void getAsync(String httpUrl, Class<T> cls, Consumer<T> callback) {
         getAsync(httpUrl, null, cls, callback, null);
     }
@@ -231,6 +232,13 @@ public class JSONRequest {
 		if(option == null) {
 			option = new Options();
 		}
+		if(option.getHeaders() == null) {
+			Map<String, String> headers = new HashMap<>();
+			headers.put("Content-Type", "application/json");
+			option.headers(headers);
+		} else {
+			option.getHeaders().put("Content-Type", "application/json");
+		}
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {
@@ -295,6 +303,16 @@ public class JSONRequest {
 	
 	public static void requestAsync(String method, String httpUrl, Object body, Options option, 
 			Consumer<NativeResponse> callback, Consumer<Throwable> exceptionCallback) {
+		if(option == null) {
+			option = new Options();
+		}
+		if(option.getHeaders() == null) {
+			Map<String, String> headers = new HashMap<>();
+			headers.put("Content-Type", "application/json");
+			option.headers(headers);
+		} else {
+			option.getHeaders().put("Content-Type", "application/json");
+		}
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {
