@@ -232,13 +232,12 @@ public class JSONRequest {
 		if(option == null) {
 			option = new Options();
 		}
-		if(option.getHeaders() == null) {
-			Map<String, String> headers = new HashMap<>();
-			headers.put("Content-Type", "application/json");
-			option.headers(headers);
-		} else {
-			option.getHeaders().put("Content-Type", "application/json");
+		Map<String, String> headers = new HashMap<>();
+		headers.put("Content-Type", "application/json");
+		if(option.getHeaders() != null) {
+			headers.putAll(option.getHeaders());
 		}
+		option.headers(headers);
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {
@@ -306,13 +305,12 @@ public class JSONRequest {
 		if(option == null) {
 			option = new Options();
 		}
-		if(option.getHeaders() == null) {
-			Map<String, String> headers = new HashMap<>();
-			headers.put("Content-Type", "application/json");
-			option.headers(headers);
-		} else {
-			option.getHeaders().put("Content-Type", "application/json");
+		Map<String, String> headers = new HashMap<>();
+		headers.put("Content-Type", "application/json");
+		if(option.getHeaders() != null) {
+			headers.putAll(option.getHeaders());
 		}
+		option.headers(headers);
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {
