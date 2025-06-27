@@ -1,4 +1,4 @@
-package com.archer.tools.arpc;
+package com.archer.tools.arpc.x;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
@@ -6,6 +6,7 @@ import java.util.Random;
 import com.archer.net.Bytes;
 import com.archer.net.ChannelContext;
 
+@Deprecated
 public class ARPCClientMessageListenner<Send, Recv> extends ARPCMessageListenner<Send, Recv> {
 	
 	public static final long TIMEOUT = 2000;

@@ -81,7 +81,7 @@ public class ThreadParallel<P, R> {
 			return ;
 		}
 		synchronized(cond) {
-			cond.notifyAll();
+			cond.notify();
 		}
 		this.running = false;
 	}

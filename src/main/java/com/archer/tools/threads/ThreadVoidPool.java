@@ -54,7 +54,7 @@ public class ThreadVoidPool {
 	public void stop() {
 		this.running = false;
 		synchronized(cond) {
-			cond.notifyAll();
+			cond.notify();
 		}
 	}
 	

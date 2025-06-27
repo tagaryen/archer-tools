@@ -1,7 +1,8 @@
-package com.archer.tools.arpc;
+package com.archer.tools.arpc.x;
 
 import com.archer.xjson.XJSON;
 
+@Deprecated
 public abstract class ARPCListenner<P, R> {
 	
 	protected XJSON json = new XJSON();

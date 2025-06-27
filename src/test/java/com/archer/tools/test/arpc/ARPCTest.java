@@ -7,46 +7,46 @@ import java.nio.file.Paths;
 import com.archer.net.ChannelContext;
 import com.archer.net.ssl.ProtocolVersion;
 import com.archer.net.ssl.SslContext;
-import com.archer.tools.arpc.ARPCClient;
-import com.archer.tools.arpc.ARPCClientCallback;
-import com.archer.tools.arpc.ARPCClientMessageListenner;
-import com.archer.tools.arpc.ARPCMessageListenner;
-import com.archer.tools.arpc.ARPCServer;
+import com.archer.tools.arpc.*;
+import com.archer.xjson.JavaTypeRef;
 import com.archer.xjson.XJSONStatic;
 
 public class ARPCTest {
 	public static void test() {
 		ARPCServer server = new ARPCServer("127.0.0.1", 9612);
-		ARPCClient client = new ARPCClient("127.0.0.1", 9612);
+		ARPCClient client0 = new ARPCClient("127.0.0.1", 9612);
+		ARPCClient client1 = new ARPCClient("127.0.0.1", 9612);
 		
-		server.registerListener(new ARPCMessageListenner<MessageC, MessageB>(MessageC.class, MessageB.class) {
+		server.addMessageListenner("/你好-徐熠-1", new ARPCMessageListenner<MessageB>() {
+
 			@Override
-			public MessageC onReceiveAndGenerateSend(ChannelContext ctx, MessageB recv) {
-				System.out.println("server receive MessageB " + XJSONStatic.stringify(recv));
+			public Object onMessage(MessageB in) {
+				System.out.println("服务端收到数据B:" + in.getB());
 				return new MessageC();
-			}
-		});
-		server.registerListener(new ARPCMessageListenner<MessageB, MessageA>(MessageB.class, MessageA.class) {
+			}});
+		server.addMessageListenner("/你好-徐熠", new ARPCMessageListenner<MessageA>() {
 			@Override
-			public MessageB onReceiveAndGenerateSend(ChannelContext ctx, MessageA recv) {
-				System.out.println("server receive MessageA " + XJSONStatic.stringify(recv));
+			public Object onMessage(MessageA in) {
+				System.out.println("服务端收到数据A:" + in.getA());
 				return new MessageB();
-			}
-		});
+			}});
 		
 		server.start();
+		try {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		
-		client.registerListener(new ARPCClientMessageListenner<MessageB, MessageC>(MessageB.class, MessageC.class));
-		client.registerListener(new ARPCClientMessageListenner<MessageA, MessageB>(MessageA.class, MessageB.class));
 		
-		client.callRemoteAsync(new MessageB(), new ARPCClientCallback<MessageC>() {
+		client0.callAsync("/你好-徐熠", new MessageA(), new ARPCClientCallback<MessageB>() {
 			@Override
-			public void onReceive(MessageC r) {
-				System.out.println("client receive MessageC " + XJSONStatic.stringify(r));
-			}
-		});
-		MessageB b = client.callRemote(new MessageA(), MessageB.class);
-		System.out.println("client receive MessageB " + XJSONStatic.stringify(b));
+			public void onReceive(MessageB r) {
+				System.out.println("客户端0收到数据B:" + r.getB());
+			}});
+		
+		MessageC c = client1.call("/你好-徐熠-1", new MessageB(), MessageC.class);
+		System.out.println("客户端1收到数据c:" + c.getC());
 		
 		try {
 			Thread.sleep(3000);
@@ -54,7 +54,8 @@ public class ARPCTest {
 			e.printStackTrace();
 		}
 		
-		client.close();
+		client0.close();
+		client1.close();
 		server.close();
 	}
 	
@@ -71,13 +72,6 @@ public class ARPCTest {
 		
 		ARPCServer server = new ARPCServer("127.0.0.1", 9607, sslctx);
 
-		server.registerListener(new ARPCMessageListenner<MessageA, MessageB>(MessageA.class, MessageB.class) {
-			@Override
-			public MessageA onReceiveAndGenerateSend(ChannelContext ctx, MessageB recv) {
-				System.out.println("server receive MessageB " + XJSONStatic.stringify(recv));
-				return new MessageA();
-			}
-		});
 		server.start();
 		try {
 			Thread.sleep(1000);
@@ -99,14 +93,12 @@ public class ARPCTest {
 		}
 		
 		ARPCClient client = new ARPCClient("127.0.0.1", 9607, sslctx);
-		client.registerListener(new ARPCClientMessageListenner<MessageB, MessageA>(MessageB.class, MessageA.class));
-		MessageA recv = client.callRemote(new MessageB(), MessageA.class);
-		System.out.println("recv a = " + XJSONStatic.stringify(recv));
+//		System.out.println("recv a = " + XJSONStatic.stringify(recv));
 	}
 	
 	public static void main(String args[]) {
-//		test();
+		test();
 //		serverGmsslTest();
-		clientGmsslTest();
+//		clientGmsslTest();
 	}
 }

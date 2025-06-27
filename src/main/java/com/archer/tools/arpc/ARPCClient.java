@@ -1,12 +1,19 @@
 package com.archer.tools.arpc;
 
+import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
+
+import com.archer.net.Bytes;
 import com.archer.net.Channel;
 import com.archer.net.ChannelContext;
 import com.archer.net.HandlerList;
 import com.archer.net.handler.BaseFrameHandler;
 import com.archer.net.ssl.SslContext;
+import com.archer.xjson.JavaTypeRef;
+import com.archer.xjson.XJSONStatic;
 
 public class ARPCClient {
+	public static final long TIMEOUT = 2000;
 
 	private Channel channel;
 	private String host;
@@ -32,14 +39,8 @@ public class ARPCClient {
 		this.channel.handlerList(handlers);
 	}
 	
-	public void registerExceptionListener(ARPCExceptionListenner listenner) {
-		this.handler.setExceptionListenner(listenner);
-	}
-	
-	public void registerListener(ARPCClientMessageListenner<?,?> ...listenners) {
-		for(ARPCClientMessageListenner<?,?> listenner: listenners) {
-			this.handler.addListenner(listenner);
-		}
+	public void addExceptionHandler(Consumer<Throwable> exHandler) {
+		this.handler.addExceptionHandler(exHandler);
 	}
 	
 	protected void active(ChannelContext ctx) {
@@ -57,13 +58,17 @@ public class ARPCClient {
 	
 	protected void doConnect() {
 		channel.connect(host, port);
+		long s = System.currentTimeMillis();
 		synchronized(activeLock) {
 			if(active) {
 				return ;
 			}
 			try {
-				activeLock.wait(ARPCClientMessageListenner.TIMEOUT);
+				activeLock.wait(TIMEOUT);
 			} catch (InterruptedException ignore) {}
+		}
+		if(System.currentTimeMillis() - s >= TIMEOUT) {
+			throw new ARPCException("Connect time out");
 		}
 	}
 	
@@ -71,39 +76,54 @@ public class ARPCClient {
 		this.channel.close();
 	}
 	
-	@SuppressWarnings("unchecked")
-	public <Send, Recv> Recv callRemote(Send s, Class<Recv> rcls) {
-		if(!active) {
-			doConnect();
-		}
-		ARPCClientMessageListenner<Send, Recv> listenner = 
-				(ARPCClientMessageListenner<Send, Recv>) handler.getListenner(s.getClass(), rcls);
-		ARPCClientCallback<Recv> cb = new ARPCClientCallback<Recv>() {
+	public <T> T call(String url, Object data, Class<T> clazz) {
+		ARPCClientCallback<T> cb = new ARPCClientCallback<T>() {
 			@Override
-			public void onReceive(Recv r) {
-				response = r;
-				synchronized(lock) {
-					lock.notifyAll();
-				}
-			}};
-		listenner.sendAsync(ctx, s, cb);
-		RuntimeException ex = cb.await();
-		if(ex != null) {
-			throw ex;
-		}
-		if(cb.response == null) {
-			throw new ARPCException("can not get response from remote");
-		}
-		return cb.response;
+			public void onReceive(T r) {}
+			@Override
+			protected void handle(String text) {
+				super.setResponse(XJSONStatic.parse(text, clazz));
+				super.release();
+			}
+		};
+		return call(url, data, cb);
 	}
 	
-	@SuppressWarnings("unchecked")
-	public <Send, Recv> void callRemoteAsync(Send s, ARPCClientCallback<Recv> callback) {
-		if(!active) {
-			doConnect();
+	public <T> T call(String url, Object data, JavaTypeRef<T> type) {
+		ARPCClientCallback<T> cb = new ARPCClientCallback<T>() {
+			@Override
+			public void onReceive(T r) {}
+			@Override
+			protected void handle(String text) {
+				super.setResponse(XJSONStatic.parse(text, type));
+				super.release();
+			}
+		};
+		return call(url, data, cb);
+	}
+	
+	public <T> void callAsync(String url, Object data, ARPCClientCallback<T> callback) {
+		handler.addCallback(url, callback);
+		doSendAsync(url, data);
+	}
+	
+	private <T> T call(String url, Object data, ARPCClientCallback<T> cb) {
+		this.handler.addCallback(url, cb);
+		doSendAsync(url, data);
+		cb.await();
+		if(cb.getResponse() == null) {
+			throw new ARPCException("Can not get response");
 		}
-		ARPCClientMessageListenner<Send, Recv> listenner = 
-				(ARPCClientMessageListenner<Send, Recv>) this.handler.getListenner(s.getClass(), callback.getRecvClass());
-		listenner.sendAsync(ctx, s, callback);
+		return cb.getResponse();
+	}
+	
+	public void doSendAsync(String url, Object data) {
+		doConnect();
+		Bytes out = new Bytes();
+		byte[] uriBs = url.getBytes(StandardCharsets.UTF_8);
+		out.writeInt16(uriBs.length);
+		out.write(uriBs);
+		out.write(XJSONStatic.stringify(data).getBytes(StandardCharsets.UTF_8));
+		ctx.toLastOnWrite(out);
 	}
 }

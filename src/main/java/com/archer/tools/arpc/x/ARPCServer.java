@@ -1,12 +1,11 @@
-package com.archer.tools.arpc;
-
-import java.util.function.Consumer;
+package com.archer.tools.arpc.x;
 
 import com.archer.net.HandlerList;
 import com.archer.net.ServerChannel;
 import com.archer.net.handler.BaseFrameHandler;
 import com.archer.net.ssl.SslContext;
 
+@Deprecated
 public class ARPCServer {
 	
 	private ServerChannel server;
@@ -14,7 +13,7 @@ public class ARPCServer {
 	private int port;
 	private int threadNums;
 	
-	private ARPCServerHandler handler;
+	private ARPCHandler handler;
 	
 	public ARPCServer(String host, int port) {
 		this(host, port, null);
@@ -29,15 +28,21 @@ public class ARPCServer {
 		this.port = port;
 		this.server = new ServerChannel(ctx);
 		this.threadNums = threadNums;
-		this.handler = new ARPCServerHandler();
+		this.handler = new ARPCHandler();
 	}
 	
-	public void addMessageListenner(String url, ARPCMessageListenner<?> listenner) {
-		this.handler.addMessageListenner(url, listenner);
+	public void registerConnectListener(ARPCConnectListenner<?> listenner) {
+		this.handler.setConnectListenner(listenner);
 	}
 	
-	public void addExceptionHandler(Consumer<Throwable> exHandler) {
-		this.handler.addExceptionHandler(exHandler);
+	public void registerExceptionListener(ARPCExceptionListenner listenner) {
+		this.handler.setExceptionListenner(listenner);
+	}
+	
+	public void registerListener(ARPCMessageListenner<?,?> ...listenners) {
+		for(ARPCMessageListenner<?,?> listenner: listenners) {
+			this.handler.addListenner(listenner);
+		}
 	}
 	
 	public void start() {

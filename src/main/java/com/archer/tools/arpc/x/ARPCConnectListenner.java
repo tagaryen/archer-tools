@@ -1,4 +1,4 @@
-package com.archer.tools.arpc;
+package com.archer.tools.arpc.x;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
@@ -7,6 +7,7 @@ import com.archer.net.Bytes;
 import com.archer.net.ChannelContext;
 import com.archer.xjson.XJSON;
 
+@Deprecated
 public abstract class ARPCConnectListenner<R> {
 
 	private static Random rand = new Random();

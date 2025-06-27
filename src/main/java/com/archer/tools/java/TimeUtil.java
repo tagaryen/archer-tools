@@ -10,6 +10,18 @@ public class TimeUtil {
 	private static DateTimeFormatter YYYY_MM_DD_HH_MM_SS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 	private static DateTimeFormatter YYYY_MM_DD = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 	
+	public static String getNowToYYYYMMDDHHMMSSSSS() {
+		return toYYYYMMDDHHMMSSSSS(LocalDateTime.now());
+	}
+	
+	public static String getNowToYYYYMMDDHHMMSS() {
+		return toYYYYMMDDHHMMSS(LocalDateTime.now());
+	}
+	
+	public static String getNowToYYYYMMDD() {
+		return toYYYYMMDD(LocalDateTime.now());
+	}
+	
 	public static String toYYYYMMDDHHMMSSSSS(TemporalAccessor time) {
 		return YYYY_MM_DD_HH_MM_SS_SSS.format(time);
 	}

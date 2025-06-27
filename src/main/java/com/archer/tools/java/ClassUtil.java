@@ -204,7 +204,7 @@ public class ClassUtil {
 				+ cls.getName() + "'"); 
 	}
     
-    public static <T> T newInstanceFromColums(Object src, Class<T> cls) 
+    public static <T> T newInstanceFromColumns(Object src, Class<T> cls) 
     		throws IllegalArgumentException, IllegalAccessException {
     	Field[] fields = fieldsCache.getOrDefault(cls, null);
     	if(fields == null) {
