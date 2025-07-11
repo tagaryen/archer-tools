@@ -3,7 +3,7 @@ package com.archer.tools.threads;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
-public class ThreadVoidPool {
+public class ThreadTaskPool {
 	
 	private volatile boolean running;
 	private Thread[] threads;
@@ -11,28 +11,28 @@ public class ThreadVoidPool {
 	private Consumer<Exception> exceptionHandler;
 	
 	private Object cond = new Object();
-	private ConcurrentLinkedQueue<VoidTask> queue = new ConcurrentLinkedQueue<>();
+	private ConcurrentLinkedQueue<ThreadTask> queue = new ConcurrentLinkedQueue<>();
 	
-	public ThreadVoidPool() {
+	public ThreadTaskPool() {
 		this(2, null);
 	}
 	
-	public ThreadVoidPool(int threadNum) {
-		this(threadNum, ThreadVoidPool.class.getSimpleName());
+	public ThreadTaskPool(int threadNum) {
+		this(threadNum, ThreadTaskPool.class.getSimpleName());
 	}
 	
-	public ThreadVoidPool(int threadNum, String namePrefix) {
+	public ThreadTaskPool(int threadNum, String namePrefix) {
 		this.threads = new Thread[threadNum];
 		this.running = false;
 		this.namePrefix = namePrefix;
 	}
 
-	public ThreadVoidPool exceptionHandler(Consumer<Exception> exceptionHandler) {
+	public ThreadTaskPool exceptionHandler(Consumer<Exception> exceptionHandler) {
 		this.exceptionHandler = exceptionHandler;
 		return this;
 	}
 	
-	public void submit(VoidTask task) {
+	public void submit(ThreadTask task) {
 		queue.offer(task);
 		synchronized(cond) {
 			cond.notify();
@@ -61,17 +61,12 @@ public class ThreadVoidPool {
 	public boolean isRunning() {
 		return running;
 	}
-
-	
-	public interface VoidTask {
-		void run();
-	}
 	
 	private static class PooledThread extends Thread {
 		
-		ThreadVoidPool pool;
+		ThreadTaskPool pool;
 		
-	    public PooledThread(ThreadVoidPool pool, int idx) {
+	    public PooledThread(ThreadTaskPool pool, int idx) {
 	    	super(pool.namePrefix + "-" + idx);
 			this.pool = pool;
 		}
@@ -79,7 +74,7 @@ public class ThreadVoidPool {
 		@Override
 	    public void run() {
 			while(pool.running) {
-				VoidTask task = pool.queue.poll();
+				ThreadTask task = pool.queue.poll();
 				if(task == null) {
 					try {
 						synchronized(pool.cond) {

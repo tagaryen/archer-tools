@@ -7,7 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import com.archer.net.ThreadPool;
 import com.archer.tools.bytecode.ClassBytecode;
 import com.archer.tools.bytecode.ClassBytecodePrinter;
 import com.archer.tools.bytecode.InstructionTable;

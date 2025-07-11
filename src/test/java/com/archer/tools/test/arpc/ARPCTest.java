@@ -92,13 +92,14 @@ public class ARPCTest {
 			e.printStackTrace();
 		}
 		
-		ARPCClient client = new ARPCClient("127.0.0.1", 9607, sslctx);
-//		System.out.println("recv a = " + XJSONStatic.stringify(recv));
+		ARPCClient client = new ARPCClient("127.0.0.1", 9067, sslctx);
+		MessageC recv = client.call("/你好", new MessageA(), MessageC.class);
+		System.out.println("recv c = " + XJSONStatic.stringify(recv));
 	}
 	
 	public static void main(String args[]) {
-		test();
+//		test();
 //		serverGmsslTest();
-//		clientGmsslTest();
+		clientGmsslTest();
 	}
 }
