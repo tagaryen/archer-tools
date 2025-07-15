@@ -13,7 +13,7 @@ public class StringUtil {
 		try {
 			NumberUtil.hexStrToBytes(s);
 			return true;
-		} catch(Exception e) {
+		} catch(Exception ignore) {
 			return false;
 		}
 	}
@@ -22,9 +22,12 @@ public class StringUtil {
 		try {
 			Long.parseLong(s);
 			return true;
-		} catch(Exception e) {
-			return false;
-		}
+		} catch(Exception ignore) {}
+		try {
+			Double.parseDouble(s);
+			return true;
+		} catch(Exception ignore) {}
+		return false;
 	}
 	
 	public static String join(List<String> strs, String sep) {

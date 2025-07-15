@@ -9,6 +9,7 @@ import com.archer.net.http.HttpStatus;
 import com.archer.net.http.client.NativeRequest;
 import com.archer.net.http.client.NativeRequest.Options;
 import com.archer.net.http.client.NativeResponse;
+import com.archer.net.http.multipart.MultipartParser;
 import com.archer.xjson.JavaTypeRef;
 import com.archer.xjson.XJSONException;
 import com.archer.xjson.XJSONStatic;
@@ -128,6 +129,22 @@ public class JSONRequest {
         deleteAsync(httpUrl, body, null, ref, callback, null);
     }
     
+	public static <T> void getAsync(String httpUrl, Options options, JavaTypeRef<T> ref, Consumer<T> callback) {
+        getAsync(httpUrl, options, ref, callback, null);
+    }
+
+    public static <T> void postAsync(String httpUrl, Object body, Options options, JavaTypeRef<T> ref, Consumer<T> callback) {
+        postAsync(httpUrl, body, options, ref, callback, null);
+    }
+
+    public static <T> void putAsync(String httpUrl, Object body, Options options, JavaTypeRef<T> ref, Consumer<T> callback) {
+        putAsync(httpUrl, body, options, ref, callback, null);
+    }
+
+    public static <T> void deleteAsync(String httpUrl, Object body, Options options, JavaTypeRef<T> ref, Consumer<T> callback) {
+        deleteAsync(httpUrl, body, options, ref, callback, null);
+    }
+    
 	public static <T> void getAsync(String httpUrl, Class<T> cls, Consumer<T> callback) {
         getAsync(httpUrl, null, cls, callback, null);
     }
@@ -143,7 +160,23 @@ public class JSONRequest {
     public static <T> void deleteAsync(String httpUrl, Object body, Class<T> cls, Consumer<T> callback) {
         deleteAsync(httpUrl, body, null, cls, callback, null);
     }
+    
+	public static <T> void getAsync(String httpUrl, Options options, Class<T> cls, Consumer<T> callback) {
+        getAsync(httpUrl, options, cls, callback, null);
+    }
 
+    public static <T> void postAsync(String httpUrl, Object body, Options options, Class<T> cls, Consumer<T> callback) {
+        postAsync(httpUrl, body, options, cls, callback, null);
+    }
+
+    public static <T> void putAsync(String httpUrl, Object body, Options options, Class<T> cls, Consumer<T> callback) {
+        putAsync(httpUrl, body, options, cls, callback, null);
+    }
+
+    public static <T> void deleteAsync(String httpUrl, Object body, Options options, Class<T> cls, Consumer<T> callback) {
+        deleteAsync(httpUrl, body, options, cls, callback, null);
+    }
+    
 	public static <T> void getAsync(String httpUrl, JavaTypeRef<T> ref, Consumer<T> callback, Consumer<Throwable> exceptionCallback) {
         getAsync(httpUrl, null, ref, callback, exceptionCallback);
     }
@@ -232,12 +265,26 @@ public class JSONRequest {
 		if(option == null) {
 			option = new Options();
 		}
-		Map<String, String> headers = new HashMap<>();
-		headers.put("Content-Type", "application/json");
-		if(option.getHeaders() != null) {
-			headers.putAll(option.getHeaders());
+		if(body instanceof FormData) {
+			FormData formData = (FormData) body;
+			String boundary = MultipartParser.generateBoundary();
+			body = MultipartParser.generateMultipartBody(formData.getMultiparts(), boundary);
+			if(option.getHeaders() != null) {
+				option.getHeaders().put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
+			} else {
+				Map<String, String> headers = new HashMap<>();
+				headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
+				option.headers(headers);
+			}
+		} else {
+			if(option.getHeaders() != null) {
+				option.getHeaders().put("Content-Type", "application/json");
+			} else {
+				Map<String, String> headers = new HashMap<>();
+				headers.put("Content-Type", "application/json");
+				option.headers(headers);
+			}
 		}
-		option.headers(headers);
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {
@@ -305,12 +352,27 @@ public class JSONRequest {
 		if(option == null) {
 			option = new Options();
 		}
-		Map<String, String> headers = new HashMap<>();
-		headers.put("Content-Type", "application/json");
-		if(option.getHeaders() != null) {
-			headers.putAll(option.getHeaders());
+
+		if(body instanceof FormData) {
+			FormData formData = (FormData) body;
+			String boundary = MultipartParser.generateBoundary();
+			body = MultipartParser.generateMultipartBody(formData.getMultiparts(), boundary);
+			if(option.getHeaders() != null) {
+				option.getHeaders().put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
+			} else {
+				Map<String, String> headers = new HashMap<>();
+				headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
+				option.headers(headers);
+			}
+		} else {
+			if(option.getHeaders() != null) {
+				option.getHeaders().put("Content-Type", "application/json");
+			} else {
+				Map<String, String> headers = new HashMap<>();
+				headers.put("Content-Type", "application/json");
+				option.headers(headers);
+			}
 		}
-		option.headers(headers);
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {

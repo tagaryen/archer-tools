@@ -1,10 +1,17 @@
 package com.archer.tools.test;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
 
 import com.archer.net.http.ContentType;
 import com.archer.net.http.HttpRequest;
 import com.archer.net.http.HttpResponse;
+import com.archer.net.http.client.NativeRequest;
+import com.archer.net.http.multipart.MultipartParser;
+import com.archer.tools.http.client.FormData;
 import com.archer.tools.http.client.JSONRequest;
 import com.archer.tools.http.server.HttpListener;
 import com.archer.tools.http.server.HttpServerException;
@@ -47,7 +54,66 @@ public class HttpTest {
 		}
 	}
 	
-	public static void main(String args[]) {
-		startHttpServer();
+	public static void testUpload() {
+		FormData data = new FormData();
+		data.put("Node-Id", "alice");
+		try {
+			data.putFile("file", "smalld.csv", Files.readAllBytes(Paths.get("D:/da.csv")));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		NativeRequest.Options opts = new NativeRequest.Options();
+		HashMap<String, String> headers = new HashMap<>();
+		headers.put("User-Token","1b32a1cdad2249a8a7e748499845abe6");
+		opts.headers(headers);
+		JSONRequest.postAsync("http://10.32.122.172:8080/api/v1alpha1/data/upload", data, opts, BaseResponse.class, (res) -> {
+			System.out.println(res.getStatus().msg);
+			System.out.println(XJSONStatic.stringify(res.getData()));
+		});
 	}
+	
+	public static void main(String args[]) {
+//		startHttpServer();
+		testUpload();
+	}
+	
+	public static class BaseResponse {
+
+	    private StatusCode status;
+
+	    private Object data;
+
+		public StatusCode getStatus() {
+			return status;
+		}
+
+		public void setStatus(StatusCode status) {
+			this.status = status;
+		}
+
+		public Object getData() {
+			return data;
+		}
+
+		public void setData(Object data) {
+			this.data = data;
+		}
+	}
+
+    public static class StatusCode {
+        private int code;
+        private String msg;
+		public int getCode() {
+			return code;
+		}
+		public void setCode(int code) {
+			this.code = code;
+		}
+		public String getMsg() {
+			return msg;
+		}
+		public void setMsg(String msg) {
+			this.msg = msg;
+		}
+    }
 }
