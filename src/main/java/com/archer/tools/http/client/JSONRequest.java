@@ -265,26 +265,19 @@ public class JSONRequest {
 		if(option == null) {
 			option = new Options();
 		}
+		/*
+		 * fix bugs with Map.of("k1", "v1")
+		 */
+		Map<String, String> headers = new HashMap<>(option.getHeaders());
 		if(body instanceof FormData) {
 			FormData formData = (FormData) body;
 			String boundary = MultipartParser.generateBoundary();
 			body = MultipartParser.generateMultipartBody(formData.getMultiparts(), boundary);
-			if(option.getHeaders() != null) {
-				option.getHeaders().put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
-			} else {
-				Map<String, String> headers = new HashMap<>();
-				headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
-				option.headers(headers);
-			}
+			headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
 		} else {
-			if(option.getHeaders() != null) {
-				option.getHeaders().put("Content-Type", "application/json");
-			} else {
-				Map<String, String> headers = new HashMap<>();
-				headers.put("Content-Type", "application/json");
-				option.headers(headers);
-			}
+			headers.put("Content-Type", "application/json");
 		}
+		option.headers(headers);
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {
@@ -353,26 +346,19 @@ public class JSONRequest {
 			option = new Options();
 		}
 
+		/*
+		 * fix bugs with Map.of("k1", "v1")
+		 */
+		Map<String, String> headers = new HashMap<>(option.getHeaders());
 		if(body instanceof FormData) {
 			FormData formData = (FormData) body;
 			String boundary = MultipartParser.generateBoundary();
 			body = MultipartParser.generateMultipartBody(formData.getMultiparts(), boundary);
-			if(option.getHeaders() != null) {
-				option.getHeaders().put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
-			} else {
-				Map<String, String> headers = new HashMap<>();
-				headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
-				option.headers(headers);
-			}
+			headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
 		} else {
-			if(option.getHeaders() != null) {
-				option.getHeaders().put("Content-Type", "application/json");
-			} else {
-				Map<String, String> headers = new HashMap<>();
-				headers.put("Content-Type", "application/json");
-				option.headers(headers);
-			}
+			headers.put("Content-Type", "application/json");
 		}
+		option.headers(headers);
 		byte[] data = new byte[0];
 		try {
 			if(body != null) {
