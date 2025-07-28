@@ -268,7 +268,10 @@ public class JSONRequest {
 		/*
 		 * fix bugs with Map.of("k1", "v1")
 		 */
-		Map<String, String> headers = new HashMap<>(option.getHeaders());
+		Map<String, String> headers = new HashMap<>();
+		if(option.getHeaders() != null) {
+			headers.putAll(option.getHeaders());
+		}
 		if(body instanceof FormData) {
 			FormData formData = (FormData) body;
 			String boundary = MultipartParser.generateBoundary();
@@ -349,7 +352,10 @@ public class JSONRequest {
 		/*
 		 * fix bugs with Map.of("k1", "v1")
 		 */
-		Map<String, String> headers = new HashMap<>(option.getHeaders());
+		Map<String, String> headers = new HashMap<>();
+		if(option.getHeaders() != null) {
+			headers.putAll(option.getHeaders());
+		}
 		if(body instanceof FormData) {
 			FormData formData = (FormData) body;
 			String boundary = MultipartParser.generateBoundary();
