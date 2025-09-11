@@ -192,9 +192,9 @@ public class ByteCodeTest {
 			
 			/**
 			 * add override method to com.archer.tools.test.bytecode.ClassA$Impl:
-			 * public void setName(String a0, int a1, ClassB a2) {
+			 * public void setName(String a0, int a1) {
 			 *     this.nameCp = a0;
-			 *     super.setName(null, a1, a2);
+			 *     super.setName(null, a1);
 			 * }
 			 * 
 			 * */
