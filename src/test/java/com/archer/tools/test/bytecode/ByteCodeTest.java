@@ -187,7 +187,7 @@ public class ByteCodeTest {
 			
 			impl.addField("nameCp", String.class, 1);
 			int fieldIndex = impl.getConstantPool().findField("nameCp", String.class);
-			int methodIndex = impl.getConstantPool().addMethod("setName", new String[] {"Ljava/lang/String;","I","Lcom/archer/tools/test/bytecode/ClassB;"}, "V", "com/archer/tools/test/bytecode/ClassA");
+			int methodIndex = impl.getConstantPool().addMethod("setName", new String[] {"Ljava/lang/String;","I"}, "V", "com/archer/tools/test/bytecode/ClassA");
 			
 			
 			/**
@@ -199,7 +199,7 @@ public class ByteCodeTest {
 			 * 
 			 * */
 			CodeAttribute code = new CodeAttribute();
-			code.setMaxLocals(4);
+			code.setMaxLocals(3);
 			code.setMaxStack(4);
 			code.setAttributes(new AttributeInfo[0]);
 			code.setException(new byte[0]);
@@ -215,20 +215,21 @@ public class ByteCodeTest {
 			data[5] = InstructionTable.getInstructionCode("aload_0");
 			data[6] = InstructionTable.getInstructionCode("aconst_null");
 			data[7] = InstructionTable.getInstructionCode("iload_2");
-			data[8] = InstructionTable.getInstructionCode("aload_3");
 			data[9] = InstructionTable.getInstructionCode("invokespecial");
 			data[10] = (byte) ((methodIndex >> 8) & 0xff);
 			data[11] = (byte) (methodIndex & 0xff);
 			data[12] = InstructionTable.getInstructionCode("return");
 			code.setCode(data);
-			impl.addMethod("setName", new String[] {"Ljava/lang/String;","I","Lcom/archer/tools/test/bytecode/ClassB;"}, "V", code);
+			impl.addMethod("setName", new String[] {"Ljava/lang/String;","I"}, "V", code);
 			impl.refreshClassEnd();
 			
 			Files.write(Paths.get("d:/test.class"), impl.encodeClassBytes().readAll());
 //			ClassBytecodePrinter.print(impl);
 			
+			
+			
 			ClassA classAins = (ClassA)ClassUtil.newInstance(impl.loadSelfClass());
-			classAins.setName("xuyihaoshuai", 18, null);
+			classAins.setName("xuyihaoshuai", 18);
 
 			System.out.println(classAins.getName());
 			System.out.println(classAins.getAge());
