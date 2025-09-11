@@ -179,7 +179,7 @@ public class ByteCodeTest {
 			ClassBytecode impl = (new ClassBytecode()).readAndDecodeClass(ClassA.class).generateImplClass("com.archer.tools.test.bytecode.ClassA$Impl");
 			
 			/**
-			 * add field nameCp Ljava/lang/String
+			 * add field com.archer.tools.test.bytecode.ClassA$Impl.nameCp Ljava/lang/String
 			 * 
 			 * add invoke method com/archer/tools/test/bytecode/ClassA.setName()
 			 * 
