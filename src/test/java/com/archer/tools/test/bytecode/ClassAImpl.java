@@ -27,6 +27,6 @@ public class ClassAImpl extends ClassA {
 	
 	public void setName(String name, int age, ClassB b) {
 		this.nameCp = name;
-		super.setName(name, age, b);
+		super.setName(null, age, b);
 	}
 }

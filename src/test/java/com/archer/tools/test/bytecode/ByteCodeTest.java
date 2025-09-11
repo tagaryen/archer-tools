@@ -1,6 +1,7 @@
 package com.archer.tools.test.bytecode;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -175,12 +176,28 @@ public class ByteCodeTest {
 	public static void test() {
 
 		try {
-			ClassBytecode impl = (new ClassBytecode()).readAndDecodeClass(ClassA.class).generateImplClass("ClassA$Impl");
+			ClassBytecode impl = (new ClassBytecode()).readAndDecodeClass(ClassA.class).generateImplClass("com.archer.tools.test.bytecode.ClassA$Impl");
+			
+			/**
+			 * add field nameCp Ljava/lang/String
+			 * 
+			 * add invoke method com/archer/tools/test/bytecode/ClassA.setName()
+			 * 
+			 * */
+			
 			impl.addField("nameCp", String.class, 1);
 			int fieldIndex = impl.getConstantPool().findField("nameCp", String.class);
 			int methodIndex = impl.getConstantPool().addMethod("setName", new String[] {"Ljava/lang/String;","I","Lcom/archer/tools/test/bytecode/ClassB;"}, "V", "com/archer/tools/test/bytecode/ClassA");
 			
 			
+			/**
+			 * add override method to com.archer.tools.test.bytecode.ClassA$Impl:
+			 * public void setName(String a0, int a1, ClassB a2) {
+			 *     this.nameCp = a0;
+			 *     super.setName(null, a1, a2);
+			 * }
+			 * 
+			 * */
 			CodeAttribute code = new CodeAttribute();
 			code.setMaxLocals(4);
 			code.setMaxStack(4);
@@ -196,7 +213,7 @@ public class ByteCodeTest {
 			data[3] = (byte) ((fieldIndex >> 8) & 0xff);
 			data[4] = (byte) (fieldIndex & 0xff);
 			data[5] = InstructionTable.getInstructionCode("aload_0");
-			data[6] = InstructionTable.getInstructionCode("aload_1");
+			data[6] = InstructionTable.getInstructionCode("aconst_null");
 			data[7] = InstructionTable.getInstructionCode("iload_2");
 			data[8] = InstructionTable.getInstructionCode("aload_3");
 			data[9] = InstructionTable.getInstructionCode("invokespecial");
@@ -204,21 +221,23 @@ public class ByteCodeTest {
 			data[11] = (byte) (methodIndex & 0xff);
 			data[12] = InstructionTable.getInstructionCode("return");
 			code.setCode(data);
-			
 			impl.addMethod("setName", new String[] {"Ljava/lang/String;","I","Lcom/archer/tools/test/bytecode/ClassB;"}, "V", code);
 			impl.refreshClassEnd();
 			
 			Files.write(Paths.get("d:/test.class"), impl.encodeClassBytes().readAll());
-			ClassBytecodePrinter.print(impl);
+//			ClassBytecodePrinter.print(impl);
 			
-			Class<?> classAImpl = impl.loadSelfClass();
-			Object classAins = ClassUtil.newInstance(classAImpl);
-			Method setName = classAImpl.getDeclaredMethod("setName", String.class, int.class, ClassB.class);
-			setName.invoke(classAins, "xuyihaoshuai", 18, null);
+			ClassA classAins = (ClassA)ClassUtil.newInstance(impl.loadSelfClass());
+			classAins.setName("xuyihaoshuai", 18, null);
+
+			System.out.println(classAins.getName());
+			System.out.println(classAins.getAge());
 			
-			Field f = classAImpl.getDeclaredField("nameCp");
+			Field f = classAins.getClass().getDeclaredField("nameCp");
 			String nameCp = (String) f.get(classAins);
 			System.out.println(nameCp);
+
+			System.out.println(classAins.getClass().getName());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

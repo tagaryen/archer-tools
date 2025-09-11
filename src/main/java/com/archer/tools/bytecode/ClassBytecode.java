@@ -174,6 +174,9 @@ public class ClassBytecode {
 			if(className.equals(this.simpleName)) {
 				throw new BytecodeException("duplicated calss name " + className);
 			}
+			if(this.className == null || this.rawClassName == null) {
+				throw new BytecodeException("package is required");
+			}
 			this.simpleName = className;
 			this.className = this.className.substring(0, this.className.lastIndexOf('.') + 1) + className;
 			this.rawClassName = this.rawClassName.substring(0, this.rawClassName.lastIndexOf('/') + 1) + className;
@@ -348,10 +351,12 @@ public class ClassBytecode {
 
 	
     public ClassBytecode readAndDecodeClass(Class<?> cls) throws IOException {
-    	String className = DescriptorUtil.replaceDot2Slash(cls.getName());
+    	this.className = cls.getName();
+    	this.rawClassName = DescriptorUtil.replaceDot2Slash(cls.getName());
+    	this.simpleName = cls.getSimpleName();
     	this.selfCls = cls;
     	this.isInterface = this.selfCls.isInterface();
-		try(InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(className + ".class")) {
+		try(InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(rawClassName + ".class")) {
 			Bytes rawClass = new Bytes();
 			byte[] buf = new byte[1024];
 			int off = 0;

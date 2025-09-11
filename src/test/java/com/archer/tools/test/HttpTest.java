@@ -1,5 +1,6 @@
 package com.archer.tools.test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,17 +12,17 @@ import com.archer.net.http.HttpRequest;
 import com.archer.net.http.HttpResponse;
 import com.archer.net.http.client.NativeRequest;
 import com.archer.net.http.multipart.MultipartParser;
-import com.archer.tools.http.client.FormData;
+import com.archer.net.http.multipart.FormData;
 import com.archer.tools.http.client.JSONRequest;
 import com.archer.tools.http.server.HttpListener;
 import com.archer.tools.http.server.HttpServerException;
-import com.archer.tools.http.server.SimpleHttpServer;
+import com.archer.tools.http.server.JSONHttpServer;
 import com.archer.xjson.XJSONStatic;
 
 public class HttpTest {
 	
 	public static void startHttpServer() {
-		SimpleHttpServer http = new SimpleHttpServer();
+		JSONHttpServer http = new JSONHttpServer();
 		try {
 			http.listen("127.0.0.1", 9677, new HttpListener() {
 
@@ -58,7 +59,7 @@ public class HttpTest {
 		FormData data = new FormData();
 		data.put("Node-Id", "alice");
 		try {
-			data.putFile("file", "smalld.csv", Files.readAllBytes(Paths.get("D:/da.csv")));
+			data.put("file", new File("D:/da.csv"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

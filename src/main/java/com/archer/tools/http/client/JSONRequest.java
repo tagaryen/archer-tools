@@ -9,6 +9,7 @@ import com.archer.net.http.HttpStatus;
 import com.archer.net.http.client.NativeRequest;
 import com.archer.net.http.client.NativeRequest.Options;
 import com.archer.net.http.client.NativeResponse;
+import com.archer.net.http.multipart.FormData;
 import com.archer.net.http.multipart.MultipartParser;
 import com.archer.xjson.JavaTypeRef;
 import com.archer.xjson.XJSONException;
@@ -272,25 +273,25 @@ public class JSONRequest {
 		if(option.getHeaders() != null) {
 			headers.putAll(option.getHeaders());
 		}
-		if(body instanceof FormData) {
-			FormData formData = (FormData) body;
-			String boundary = MultipartParser.generateBoundary();
-			body = MultipartParser.generateMultipartBody(formData.getMultiparts(), boundary);
-			headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
-		} else {
+		if(!(body instanceof FormData)) {
 			headers.put("Content-Type", "application/json");
 		}
 		option.headers(headers);
-		byte[] data = new byte[0];
+		byte[] data = null;
 		try {
-			if(body != null) {
-				if(body instanceof String) {
-					data = ((String) body).getBytes(option.getEncoding());
-				} else {
-					data = XJSONStatic.stringify(body).getBytes(option.getEncoding());
+			NativeResponse res;
+			if(body != null && body instanceof FormData) {
+				res = NativeRequest.request(method, httpUrl, (FormData)body, option);
+			} else {
+				if(body != null) {
+					if(body instanceof String) {
+						data = ((String) body).getBytes(option.getEncoding());
+					} else {
+						data = XJSONStatic.stringify(body).getBytes(option.getEncoding());
+					}
 				}
+				res = NativeRequest.request(method, httpUrl, data, option);
 			}
-			NativeResponse res = NativeRequest.request(method, httpUrl, data, option);
 			String resBody = new String(res.getBody(), option.getEncoding());
 			if(res.getStatusCode() != NativeResponse.HTTP_OK) {
 				throw new HttpException(res.getStatusCode(), resBody);
@@ -365,16 +366,20 @@ public class JSONRequest {
 			headers.put("Content-Type", "application/json");
 		}
 		option.headers(headers);
-		byte[] data = new byte[0];
+		byte[] data = null;
 		try {
-			if(body != null) {
-				if(body instanceof String) {
-					data = ((String) body).getBytes(option.getEncoding());
-				} else {
-					data = XJSONStatic.stringify(body).getBytes(option.getEncoding());
+			if(body != null && body instanceof FormData) {
+				NativeRequest.requestAsync(method, httpUrl, (FormData)body, option, callback, exceptionCallback);
+			} else {
+				if(body != null) {
+					if(body instanceof String) {
+						data = ((String) body).getBytes(option.getEncoding());
+					} else {
+						data = XJSONStatic.stringify(body).getBytes(option.getEncoding());
+					}
 				}
+				NativeRequest.requestAsync(method, httpUrl, data, option, callback, exceptionCallback);
 			}
-			NativeRequest.requestAsync(method, httpUrl, data, option, callback, exceptionCallback);
 		} catch(Exception e) {
 			if(e instanceof HttpException) {
 				throw (HttpException) e;

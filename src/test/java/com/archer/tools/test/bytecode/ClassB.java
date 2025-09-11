@@ -14,8 +14,11 @@ public class ClassB {
 	public String getName() {
 		return name;
 	}
+	
 	public void setName(String name) {
-		this.name = name;
+		this.name = "nihao";
+		this.age = 1;
+		this.income = 6;
 	}
 	public int getAge() {
 		return age;
