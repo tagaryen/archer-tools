@@ -39,7 +39,7 @@ final class HttpHandler extends HttpWrappedHandler {
 			
 			res.setStatus(HttpStatus.SERVICE_UNAVAILABLE);
 			res.setContentType(ContentType.APPLICATION_JSON);
-			res.setContent(body.getBytes());
+			res.sendContent(body.getBytes());
 		}
 	}
 }

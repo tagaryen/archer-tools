@@ -1,7 +1,9 @@
 package com.archer.tools.java;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 
@@ -22,6 +24,18 @@ public class TimeUtil {
 		return toYYYYMMDD(LocalDateTime.now());
 	}
 	
+	public static String toYYYYMMDDHHMMSSSSS(Long timestamp) {
+		return toYYYYMMDDHHMMSSSSS(parseToLocalDateTime(timestamp));
+	}
+	
+	public static String toYYYYMMDDHHMMSS(Long timestamp) {
+		return toYYYYMMDDHHMMSS(parseToLocalDateTime(timestamp));
+	}
+	
+	public static String toYYYYMMDD(Long timestamp) {
+		return toYYYYMMDD(parseToLocalDateTime(timestamp));
+	}
+	
 	public static String toYYYYMMDDHHMMSSSSS(TemporalAccessor time) {
 		return YYYY_MM_DD_HH_MM_SS_SSS.format(time);
 	}
@@ -32,6 +46,14 @@ public class TimeUtil {
 	
 	public static String toYYYYMMDD(TemporalAccessor time) {
 		return YYYY_MM_DD.format(time);
+	}
+
+	public static LocalDateTime parseToLocalDateTime(Long timestamp) {
+		return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault());
+	}
+	
+	public static LocalDate parseToLocalDate(Long timestamp) {
+		return parseToLocalDateTime(timestamp).toLocalDate();
 	}
 	
 	public static LocalDateTime parseToLocalDateTime(String reg) {
@@ -65,4 +87,5 @@ public class TimeUtil {
 		
 		return LocalDate.parse(reg);
 	}
+
 }

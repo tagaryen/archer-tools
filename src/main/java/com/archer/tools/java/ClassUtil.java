@@ -177,8 +177,32 @@ public class ClassUtil {
 						cls.getName() + "'", e);
 			}
     	}
-		int paramCount = cls.isMemberClass() ? 1 : 0;
 		Constructor<?>[] constructors = cls.getDeclaredConstructors();
+		if(constructors.length < 1) {
+			throw new RuntimeException("can not found constructor in class '" +
+					cls.getName() + "'");
+		}
+		Constructor<?> constructor = constructors[0];
+		int paramCount = constructors[0].getParameterCount();
+		for(int i = 1; i < constructors.length; i++) {
+			if(constructors[i].getParameterCount() < paramCount) {
+				paramCount = constructors[i].getParameterCount();
+				constructor = constructors[i];
+			}
+		}
+		constructor.setAccessible(true);
+		Object[] params = new Object[paramCount];
+		constructorCache.put(cls, new ConstructorStuff(constructor, params));
+		try {
+			constructor.setAccessible(true);
+			return constructor.newInstance(params);
+		} catch (Exception e) {
+			throw new RuntimeException("can not construct class '" +
+					cls.getName() + "'", e);
+		}
+
+		/** old version code
+		int paramCount = cls.isMemberClass() ? 1 : 0;
 		for(Constructor<?> constructor : constructors) {
 			Object[] params = null;
 			if(constructor.getParameterCount() == 0) {
@@ -202,35 +226,53 @@ public class ClassUtil {
 		throw new RuntimeException(
 				"no arguments constructor is required with class '" 
 				+ cls.getName() + "'"); 
+		*/
 	}
     
-    public static <T> T newInstanceFromObject(Object src, Class<T> cls) 
-    		throws IllegalArgumentException, IllegalAccessException {
-    	Field[] fields = fieldsCache.getOrDefault(cls, null);
-    	if(fields == null) {
-    		fields = cls.getDeclaredFields();
-    		fieldsCache.put(cls, fields);
-    	}
-    	
+	/**
+	 * use {@code newInstanceAndcopyProperties} instead
+	 * */
+	@Deprecated
+    public static <T> T newInstanceFromObject(Object src, Class<T> cls) {
+    	return newInstanceAndCopyProperties(src, cls);
+    }
+    
+    public static <T> T newInstanceAndCopyProperties(Object src, Class<T> cls) {
     	@SuppressWarnings("unchecked")
 		T ins = (T) newInstance(cls);
-    	
-    	for(Field f: fields) {
-    		Object srcF = null;
-    		try {
-    			Field srcColum = src.getClass().getDeclaredField(f.getName());
-    			srcColum.setAccessible(true);
-    			srcF = srcColum.get(src);
-			} catch (Exception ignore) {
-				continue ;
-			}
-    		if(f.getType().isAssignableFrom(srcF.getClass())) {
-    			f.setAccessible(true);
-				f.set(ins, srcF);
-    		}
-    	}
+    	copyProperties(src, ins);
     	return ins;
     }
+    
+    public static void copyProperties(Object src, Object dst) {
+    	try {
+        	Class<?> cls = dst.getClass();
+        	Field[] fields = fieldsCache.getOrDefault(cls, null);
+        	if(fields == null) {
+        		fields = cls.getDeclaredFields();
+        		fieldsCache.put(cls, fields);
+        	}
+        	
+        	for(Field f: fields) {
+        		f.setAccessible(true);
+        		Object srcF = null;
+        		try {
+        			Field srcColum = src.getClass().getDeclaredField(f.getName());
+        			srcColum.setAccessible(true);
+        			srcF = srcColum.get(src);
+    			} catch (Exception ignore) {
+    				continue ;
+    			}
+        		if(f.getType().isAssignableFrom(srcF.getClass())) {
+        			f.setAccessible(true);
+    				f.set(dst, srcF);
+        		}
+        	}
+    	} catch(IllegalAccessException e) {
+    		throw new IllegalArgumentException(e);
+    	}
+    }
+    
     
     static class ConstructorStuff {
     	private Constructor<?> constructor;

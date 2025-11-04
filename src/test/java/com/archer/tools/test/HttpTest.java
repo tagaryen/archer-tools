@@ -29,7 +29,7 @@ public class HttpTest {
 				@Override
 				public void inComingMessage(HttpRequest req, HttpResponse res) {
 					res.setContentType(ContentType.APPLICATION_JSON);
-					res.setContent(XJSONStatic.stringify(new HttpVo(18, "帅哥")).getBytes(StandardCharsets.UTF_8));
+					res.sendContent(XJSONStatic.stringify(new HttpVo(18, "帅哥")).getBytes(StandardCharsets.UTF_8));
 				}
 
 				@Override
