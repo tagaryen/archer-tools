@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 
@@ -86,6 +87,14 @@ public class TimeUtil {
 		} catch(Exception ignore) {}
 		
 		return LocalDate.parse(reg);
+	}
+	
+	public static Long getUnixMillis(LocalDateTime time) {
+		return time.toInstant(ZoneOffset.of("+8")).toEpochMilli();
+	}
+
+	public static Long getUnixMillis(String time) {
+		return parseToLocalDateTime(time).toInstant(ZoneOffset.of("+8")).toEpochMilli();
 	}
 
 }

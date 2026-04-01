@@ -2,11 +2,11 @@
 Useful tools written with pure java. Includes ecdsa, sm2, sm3, encryption, excel reader, http(s) client and server etc.  
 maven:
 ``` maven
-        <dependency>
-	  <groupId>io.github.tagaryen</groupId>  
-	  <artifactId>archer-tools</artifactId>  
-	  <version>1.2.28</version>  
-	</dependency>  
+    <dependency>  
+        <groupId>io.github.tagaryen</groupId>  
+        <artifactId>archer-tools</artifactId>  
+        <version>1.2.29</version>  
+    </dependency>  
 ```
 
 ## Asm java bytecode

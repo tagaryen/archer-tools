@@ -10,5 +10,4 @@ public class JsonAbClass {
 	public void setName(String name) {
 		this.name = name;
 	}
-	
 }

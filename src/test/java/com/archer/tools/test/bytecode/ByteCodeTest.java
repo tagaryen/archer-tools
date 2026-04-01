@@ -223,7 +223,7 @@ public class ByteCodeTest {
 			impl.addMethod("setName", new String[] {"Ljava/lang/String;","I"}, "V", code);
 			impl.refreshClassEnd();
 			
-			Files.write(Paths.get("d:/test.class"), impl.encodeClassBytes().readAll());
+//			Files.write(Paths.get("d:/test.class"), impl.encodeClassBytes().readAll());
 //			ClassBytecodePrinter.print(impl);
 			
 			
