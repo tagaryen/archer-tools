@@ -11,13 +11,24 @@ import com.archer.net.http.ContentType;
 import com.archer.net.http.HttpRequest;
 import com.archer.net.http.HttpResponse;
 import com.archer.net.http.client.NativeRequest;
-import com.archer.net.http.multipart.MultipartParser;
 import com.archer.net.http.multipart.FormData;
 import com.archer.tools.http.client.JSONRequest;
+import com.archer.tools.http.client.Request;
+import com.archer.tools.http.client.Response;
 import com.archer.tools.http.server.HttpListener;
 import com.archer.tools.http.server.HttpServerException;
 import com.archer.tools.http.server.JSONHttpServer;
 import com.archer.xjson.XJSONStatic;
+
+
+import java.util.*;
+import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 public class HttpTest {
 	
@@ -73,9 +84,19 @@ public class HttpTest {
 		});
 	}
 	
+	public static void nioTest() {
+		
+	}
+	
 	public static void main(String args[]) {
 //		startHttpServer();
-		testUpload();
+//		testUpload();
+		Response res = Request.get("https://www.baidu.com");
+		System.out.println(res.getBodyAsString());
+	}
+	
+	public static class Res {
+		
 	}
 	
 	public static class BaseResponse {

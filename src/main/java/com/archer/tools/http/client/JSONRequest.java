@@ -1,16 +1,17 @@
 package com.archer.tools.http.client;
 
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import com.archer.net.Bytes;
 import com.archer.net.http.HttpException;
 import com.archer.net.http.HttpStatus;
 import com.archer.net.http.client.NativeRequest;
 import com.archer.net.http.client.NativeRequest.Options;
 import com.archer.net.http.client.NativeResponse;
 import com.archer.net.http.multipart.FormData;
-import com.archer.net.http.multipart.MultipartParser;
 import com.archer.xjson.JavaTypeRef;
 import com.archer.xjson.XJSONException;
 import com.archer.xjson.XJSONStatic;
@@ -263,6 +264,16 @@ public class JSONRequest {
 	}
     
 	public static String request(String method, String httpUrl, Object body, Options option) {
+		Bytes resBody = rawRequest(method, httpUrl, body, option);
+		try {
+			return new String(resBody.array(), option.getEncoding());
+		} catch (UnsupportedEncodingException e) {
+			throw new HttpException(HttpStatus.BAD_REQUEST.getCode(), e);
+		}
+	}
+	
+
+	public static Bytes rawRequest(String method, String httpUrl, Object body, Options option) {
 		if(option == null) {
 			option = new Options();
 		}
@@ -273,9 +284,6 @@ public class JSONRequest {
 		if(option.getHeaders() != null) {
 			headers.putAll(option.getHeaders());
 		}
-		if(!(body instanceof FormData)) {
-			headers.put("Content-Type", "application/json");
-		}
 		option.headers(headers);
 		byte[] data = null;
 		try {
@@ -284,6 +292,9 @@ public class JSONRequest {
 				res = NativeRequest.request(method, httpUrl, (FormData)body, option);
 			} else {
 				if(body != null) {
+					if(!checkContentTypeExists(option.getHeaders())) {
+						option.getHeaders().put("Content-Type", "application/json");
+					}
 					if(body instanceof String) {
 						data = ((String) body).getBytes(option.getEncoding());
 					} else {
@@ -292,11 +303,7 @@ public class JSONRequest {
 				}
 				res = NativeRequest.request(method, httpUrl, data, option);
 			}
-			String resBody = new String(res.getBody(), option.getEncoding());
-			if(res.getStatusCode() != NativeResponse.HTTP_OK) {
-				throw new HttpException(res.getStatusCode(), resBody);
-			}
-			return resBody;
+			return new Bytes(res.getBody());
 		} catch(Exception e) {
 			if(e instanceof HttpException) {
 				throw (HttpException) e;
@@ -304,9 +311,10 @@ public class JSONRequest {
 			if(e instanceof XJSONException) {
 				throw (XJSONException) e;
 			}
-			throw new HttpException(HttpStatus.BAD_REQUEST.getCode(), e.getLocalizedMessage());
+			throw new HttpException(HttpStatus.BAD_REQUEST.getCode(), e);
 		}
 	}
+	
 	
     public static <T> void requestAsync(String method, String httpUrl, Object body, Options option, 
     		JavaTypeRef<T> ref, Consumer<T> callback, Consumer<Throwable> exceptionCallback) {
@@ -357,14 +365,6 @@ public class JSONRequest {
 		if(option.getHeaders() != null) {
 			headers.putAll(option.getHeaders());
 		}
-		if(body instanceof FormData) {
-			FormData formData = (FormData) body;
-			String boundary = MultipartParser.generateBoundary();
-			body = MultipartParser.generateMultipartBody(formData.getMultiparts(), boundary);
-			headers.put("Content-Type", MultipartParser.MULTIPART_HEADER + boundary);
-		} else {
-			headers.put("Content-Type", "application/json");
-		}
 		option.headers(headers);
 		byte[] data = null;
 		try {
@@ -372,6 +372,9 @@ public class JSONRequest {
 				NativeRequest.requestAsync(method, httpUrl, (FormData)body, option, callback, exceptionCallback);
 			} else {
 				if(body != null) {
+					if(!checkContentTypeExists(option.getHeaders())) {
+						option.getHeaders().put("Content-Type", "application/json");
+					}
 					if(body instanceof String) {
 						data = ((String) body).getBytes(option.getEncoding());
 					} else {
@@ -389,6 +392,16 @@ public class JSONRequest {
 			}
 			throw new HttpException(HttpStatus.BAD_REQUEST.getCode(), e.getLocalizedMessage());
 		}
+	}
+	
+	private static boolean checkContentTypeExists(Map<String, String> headers) {
+		boolean ok = false;
+		for(String k: headers.keySet()) {
+			if(k.toLowerCase().equals("content-type")) {
+				ok = true;
+			}
+		}
+		return ok;
 	}
 }
 
