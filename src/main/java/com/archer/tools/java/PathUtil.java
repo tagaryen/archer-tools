@@ -26,6 +26,17 @@ public class PathUtil {
             throw new RuntimeException(e);
         }
     }
+    
+    public static String getParentDir(String path) {
+    	int sep = path.lastIndexOf(File.separator);
+    	if(sep < 0) {
+    		throw new IllegalArgumentException("invalid path: '" + path + "'");
+    	}
+    	if(sep == 0) {
+    		return File.separator;
+    	}
+    	return path.substring(0, sep);
+    }
 
     public static void mkdirs(File f) {
         if(!f.exists()) {

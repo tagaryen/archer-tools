@@ -264,6 +264,9 @@ public class JSONRequest {
 	}
     
 	public static String request(String method, String httpUrl, Object body, Options option) {
+		if(option == null) {
+			option = new Options();
+		}
 		Bytes resBody = rawRequest(method, httpUrl, body, option);
 		try {
 			return new String(resBody.array(), option.getEncoding());

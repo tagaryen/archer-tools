@@ -134,6 +134,9 @@ public class JSONNioRequest {
 	}
     
 	public static String request(String method, String httpUrl, Object body, Options option) {
+		if(option == null) {
+			option = new Options();
+		}
 		Bytes responseBody = rawRequest(method, httpUrl, body, option);
 		try {
 			return new String(responseBody.array(), option.getEncoding());

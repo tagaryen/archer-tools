@@ -2,8 +2,11 @@ package com.archer.tools.java;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Random;
 
 public final class NumberUtil {
+	
+	private static final Random r = new Random();
 	
 	private static final int DEFAULT_BYTE = 0x7f;
 	
@@ -147,5 +150,20 @@ public final class NumberUtil {
 		}
 		return ints;
 	}
+	
+	public static int random() {
+		return r.nextInt(65536);
+	}
+	
+	public static int random(int bound) {
+		return r.nextInt(bound);
+	}
+	public static long randomLong() {
+		return r.nextLong();
+	}
+	
+	public static long random(long bound) {
+		return r.nextLong() % bound;
+	}	
 }
 
