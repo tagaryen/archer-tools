@@ -11,6 +11,7 @@ import com.archer.net.http.ContentType;
 import com.archer.net.http.HttpRequest;
 import com.archer.net.http.HttpResponse;
 import com.archer.net.http.client.NativeRequest;
+import com.archer.net.http.client.NativeResponse;
 import com.archer.net.http.multipart.FormData;
 import com.archer.tools.http.client.JSONRequest;
 import com.archer.tools.http.client.Request;
@@ -91,8 +92,8 @@ public class HttpTest {
 	public static void main(String args[]) {
 //		startHttpServer();
 //		testUpload();
-		Response res = Request.get("https://www.baidu.com");
-		System.out.println(res.getBodyAsString());
+		String body = JSONRequest.get("https://www.aliyun.com");
+		System.out.println(body);
 	}
 	
 	public static class Res {

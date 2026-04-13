@@ -90,6 +90,10 @@ public final class Platform {
     public static final int getOSType() {
         return osType;
     }
+    //"x86" "x86-64" "aarch" "aarch64"
+    public static final String getArch() {
+    	return ARCH;
+    }
     public static final boolean isMac() {
         return osType == MAC;
     }
@@ -147,7 +151,8 @@ public final class Platform {
             || "mips64".equals(ARCH) || "mips64el".equals(ARCH)
             || "loongarch64".equals(ARCH)
             || "amd64".equals(ARCH)
-            || "aarch64".equals(ARCH)) {
+            || "aarch64".equals(ARCH)
+            || "arm64".equals(ARCH)) {
             return true;
         }
         return false;
@@ -167,6 +172,10 @@ public final class Platform {
         return false;
     }
 
+    public static final boolean isX86_64() {
+        return "x86-64".equals(ARCH) || "amd64".equals(ARCH);
+    }
+    
     public static final boolean isARM() {
         return ARCH.startsWith("arm") || ARCH.startsWith("aarch");
     }
@@ -188,7 +197,7 @@ public final class Platform {
     public static final boolean isLoongArch() {
         return ARCH.startsWith("loongarch");
     }
-
+    
     static String getCanonicalArchitecture(String arch, int platform) {
         arch = arch.toLowerCase().trim();
         if ("powerpc".equals(arch)) {
@@ -202,6 +211,12 @@ public final class Platform {
         }
         else if ("x86_64".equals(arch) || "amd64".equals(arch)) {
             arch = "x86-64";
+        }
+        else if ("arm".equals(arch) || "aarch".equals(arch)) {
+            arch = "aarch";
+        }
+        else if ("arm64".equals(arch) || "aarch64".equals(arch)) {
+            arch = "aarch64";
         }
         else if ("zarch_64".equals(arch)) {
             arch = "s390x";
