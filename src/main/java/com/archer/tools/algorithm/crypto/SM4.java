@@ -3,6 +3,7 @@ package com.archer.tools.algorithm.crypto;
 import java.util.Arrays;
 
 import com.archer.tools.java.NumberUtil;
+import com.archer.tools.java.StringUtil;
 
 public class SM4 {
 
@@ -190,6 +191,10 @@ public class SM4 {
         while(r < BLOCK_SIZE) {
             f[r++] = b;
         }
+    }
+    
+    public static byte[] generateKey() {
+    	return StringUtil.random(16).getBytes();
     }
     
     public static byte[] encrypt(byte[] plaintext, byte[] key) {

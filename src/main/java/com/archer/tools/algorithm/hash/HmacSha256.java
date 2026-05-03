@@ -1,6 +1,9 @@
 package com.archer.tools.algorithm.hash;
 
-
+/**
+ * @deprecated Using {@code com.archer.tools.algorithm.hash.Hmac.hmac} instead.
+ * */
+@Deprecated()
 public class HmacSha256 {
     public static final int[] _5C = new int[256];
 

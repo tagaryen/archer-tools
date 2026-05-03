@@ -13,6 +13,10 @@ public class StringUtil {
 		return s == null ? true : s.isEmpty();
 	}
 	
+	public static boolean isNotEmpty(String s) {
+		return !isEmpty(s);
+	}
+	
 	public static boolean isHex(String s) {
 		try {
 			NumberUtil.hexStrToBytes(s);

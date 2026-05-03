@@ -1,6 +1,7 @@
 package com.archer.tools.algorithm.hash;
 
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import com.archer.tools.java.NumberUtil;
@@ -18,7 +19,11 @@ public class SM3 {
             Tj[i] = 0x7a879d8a;
         }
     }
-
+    
+    public static String hash(String message) {
+    	return NumberUtil.bytesToHexStr(hash(message.getBytes(StandardCharsets.UTF_8)));
+    }
+    
     public static byte[] hash(byte[] input) {
         return hash(input, 0, input.length);
     }

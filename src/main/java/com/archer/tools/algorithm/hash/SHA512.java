@@ -1,7 +1,15 @@
 package com.archer.tools.algorithm.hash;
 
-public class SHA512 {
+import java.nio.charset.StandardCharsets;
 
+import com.archer.tools.java.NumberUtil;
+
+public class SHA512 {
+	
+    public static String hash(String message) {
+    	return NumberUtil.bytesToHexStr(hash(message.getBytes(StandardCharsets.UTF_8)));
+    }
+    
     public static byte[] hash(byte[] data) {
         long h0 = 0x6a09e667f3bcc908L;
         long h1 = 0xbb67ae8584caa73bL;

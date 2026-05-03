@@ -2,6 +2,9 @@ package com.archer.tools.algorithm.hash;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+
+import com.archer.tools.java.NumberUtil;
 
 import static java.lang.Math.min;
 import static java.lang.System.arraycopy;
@@ -13,6 +16,10 @@ public class Keccak256 {
 
     static BigInteger MOD = new BigInteger("18446744073709551616");
 
+    public static String hash(String message) {
+    	return NumberUtil.bytesToHexStr(hash(message.getBytes(StandardCharsets.UTF_8)));
+    }
+    
     public static byte[] hash(final byte[] message) {
 
         int d = 1088, rate = 0x01, outputLen = 256;

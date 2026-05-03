@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.archer.tools.java.CollectionUtil;
+import com.archer.tools.java.ContainerUtil;
 import com.archer.xjson.XJSONStatic;
 
 public class CollectionTest {
@@ -16,13 +16,13 @@ public class CollectionTest {
 			test.add(new ClassA());
 		}
 		
-		Map<String, Integer> map = CollectionUtil.toMap(test, ClassA::getName, (t) -> {
+		Map<String, Integer> map = ContainerUtil.toMap(test, ClassA::getName, (t) -> {
 			return t.getAge() + 10;
 		});
 		
 		System.out.println(XJSONStatic.stringify(map));
 		
-		Map<String, ClassA> map2 = CollectionUtil.toMap(test, ClassA::getName);
+		Map<String, ClassA> map2 = ContainerUtil.toMap(test, ClassA::getName);
 
 		System.out.println(XJSONStatic.stringify(map2));
 	}

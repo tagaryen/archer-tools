@@ -1,9 +1,17 @@
 package com.archer.tools.algorithm.hash;
 
+import java.nio.charset.StandardCharsets;
+
+import com.archer.tools.java.NumberUtil;
+
 public class SHA1 {
 
 	private static int bs = 64;
 	
+    public static String hash(String message) {
+    	return NumberUtil.bytesToHexStr(hash(message.getBytes(StandardCharsets.UTF_8)));
+    }
+    
     public static byte[] hash(byte[] in) {
     	return computeHash(pad(in));
     }

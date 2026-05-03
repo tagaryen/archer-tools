@@ -1,7 +1,15 @@
 package com.archer.tools.algorithm.hash;
 
-public class SHA384 {
+import java.nio.charset.StandardCharsets;
 
+import com.archer.tools.java.NumberUtil;
+
+public class SHA384 {
+	
+    public static String hash(String message) {
+    	return NumberUtil.bytesToHexStr(hash(message.getBytes(StandardCharsets.UTF_8)));
+    }
+    
     public static byte[] hash(byte[] data) {
         long h0 = 0xcbbb9d5dc1059ed8L;
         long h1 = 0x629a292a367cd507L;
