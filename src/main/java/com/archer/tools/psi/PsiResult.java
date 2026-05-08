@@ -2,11 +2,11 @@ package com.archer.tools.psi;
 
 import java.util.List;
 
-public class Pair {
+public class PsiResult {
 	List<byte[]> p0;
 	List<byte[]> p1;
 	
-	public Pair(List<byte[]> p0, List<byte[]> p1) {
+	public PsiResult(List<byte[]> p0, List<byte[]> p1) {
 		super();
 		this.p0 = p0;
 		this.p1 = p1;

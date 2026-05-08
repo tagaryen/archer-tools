@@ -56,7 +56,7 @@ public class RSAPsi {
 	 * 
 	 * return Pair.p0 = uSet, Pair.p1 = rSet
 	 * */
-	public static Pair server0(byte[] pk, List<byte[]> set) {
+	public static PsiResult server0(byte[] pk, List<byte[]> set) {
 		byte[] n = Arrays.copyOfRange(pk, 0, BYTES);
 		byte[] e = Arrays.copyOfRange(pk, BYTES, BYTES << 1);
 		ArrayList<byte[]> uSet = new ArrayList<>(set.size());
@@ -74,7 +74,7 @@ public class RSAPsi {
 			byte[] u = MathLib.mulm(h, MathLib.powm(r, e, n), n);
 			uSet.add(u);
 		}
-		return new Pair(uSet, rSet);
+		return new PsiResult(uSet, rSet);
 	}
 
 	/**
@@ -87,7 +87,7 @@ public class RSAPsi {
 	 * 
 	 * return Pair.p0 = zSet, Pair.p1 = bSet
 	 * */
-	public static Pair client1(byte[] sk, List<byte[]> uSet, List<byte[]> set) {
+	public static PsiResult client1(byte[] sk, List<byte[]> uSet, List<byte[]> set) {
 		byte[] n = Arrays.copyOfRange(sk, 0, BYTES);
 		byte[] d = Arrays.copyOfRange(sk, BYTES, BYTES << 1);
 		ArrayList<byte[]> zSet = new ArrayList<byte[]>(uSet.size());
@@ -101,7 +101,7 @@ public class RSAPsi {
 			byte[] b = MathLib.powm(h, d, n);
 			bSet.add(b);
 		}
-		return new Pair(zSet, bSet);
+		return new PsiResult(zSet, bSet);
 	}
 	
 	

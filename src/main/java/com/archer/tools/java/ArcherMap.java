@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ArcherMap<K, V> implements Map<K, V> {
-
+	
 	private int cap, size;
 	private Object[] keys, vals;
 	
@@ -132,19 +132,19 @@ public class ArcherMap<K, V> implements Map<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Set<K> keySet() {
-		return new KeySet<K>((K[])keys);
+		return new KeySet<K>((K[])Arrays.copyOfRange(keys, 0, size));
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public Collection<V> values() {
-		return Arrays.asList((V[])vals);
+		return Arrays.asList((V[])Arrays.copyOfRange(vals, 0, size));
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public Set<Map.Entry<K, V>> entrySet() {
-		return new PairSet<K, V>((K[])keys, (V[])vals);
+		return new PairSet<K, V>((K[])Arrays.copyOfRange(keys, 0, size), (V[])Arrays.copyOfRange(vals, 0, size));
 	}
 
 	@SuppressWarnings("hiding")
@@ -380,6 +380,204 @@ public class ArcherMap<K, V> implements Map<K, V> {
 		public V setValue(V value) {
 	        throw new UnsupportedOperationException();
 		}
-		
+	}
+	
+	@SuppressWarnings("unchecked")
+	public Map.Entry<K, V> getEntryByIndex(int index) {
+		if(index >= size || index < 0) {
+			return null;
+		}
+		return new Pair<K, V>((K)keys[index], (V)vals[index]);
+	}
+	@SuppressWarnings("unchecked")
+	public K getKeyByIndex(int index) {
+		if(index >= size || index < 0) {
+			return null;
+		}
+		return (K)keys[index];
+	}
+	@SuppressWarnings("unchecked")
+	public V getValueByIndex(int index) {
+		if(index >= size || index < 0) {
+			return null;
+		}
+		return (V)vals[index];
+	}
+	
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		return map;
+	}
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		return map;
+	}
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		if(k3 != null && v3 != null) {
+			map.put(k3,  v3);
+		}
+		return map;
+	}
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		if(k3 != null && v3 != null) {
+			map.put(k3,  v3);
+		}
+		if(k4 != null && v4 != null) {
+			map.put(k4,  v4);
+		}
+		return map;
+	}
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		if(k3 != null && v3 != null) {
+			map.put(k3,  v3);
+		}
+		if(k4 != null && v4 != null) {
+			map.put(k4,  v4);
+		}
+		if(k5 != null && v5 != null) {
+			map.put(k5,  v5);
+		}
+		return map;
+	}
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5,
+            K k6, V v6) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		if(k3 != null && v3 != null) {
+			map.put(k3,  v3);
+		}
+		if(k4 != null && v4 != null) {
+			map.put(k4,  v4);
+		}
+		if(k5 != null && v5 != null) {
+			map.put(k5,  v5);
+		}
+		if(k6 != null && v6 != null) {
+			map.put(k6,  v6);
+		}
+		return map;
+	}
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5,
+            K k6, V v6, K k7, V v7) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		if(k3 != null && v3 != null) {
+			map.put(k3,  v3);
+		}
+		if(k4 != null && v4 != null) {
+			map.put(k4,  v4);
+		}
+		if(k5 != null && v5 != null) {
+			map.put(k5,  v5);
+		}
+		if(k6 != null && v6 != null) {
+			map.put(k6,  v6);
+		}
+		if(k7 != null && v7 != null) {
+			map.put(k7,  v7);
+		}
+		return map;
+	}
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5,
+            K k6, V v6, K k7, V v7, K k8, V v8) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		if(k3 != null && v3 != null) {
+			map.put(k3,  v3);
+		}
+		if(k4 != null && v4 != null) {
+			map.put(k4,  v4);
+		}
+		if(k5 != null && v5 != null) {
+			map.put(k5,  v5);
+		}
+		if(k6 != null && v6 != null) {
+			map.put(k6,  v6);
+		}
+		if(k7 != null && v7 != null) {
+			map.put(k7,  v7);
+		}
+		if(k8 != null && v8 != null) {
+			map.put(k8,  v8);
+		}
+		return map;
+	}
+	
+	public static <K, V> ArcherMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5,
+            K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9) {
+		ArcherMap<K, V> map = new ArcherMap<>();
+		if(k1 != null && v1 != null) {
+			map.put(k1,  v1);
+		}
+		if(k2 != null && v2 != null) {
+			map.put(k2,  v2);
+		}
+		if(k3 != null && v3 != null) {
+			map.put(k3,  v3);
+		}
+		if(k4 != null && v4 != null) {
+			map.put(k4,  v4);
+		}
+		if(k5 != null && v5 != null) {
+			map.put(k5,  v5);
+		}
+		if(k6 != null && v6 != null) {
+			map.put(k6,  v6);
+		}
+		if(k7 != null && v7 != null) {
+			map.put(k7,  v7);
+		}
+		if(k8 != null && v8 != null) {
+			map.put(k8,  v8);
+		}
+		if(k9 != null && v9 != null) {
+			map.put(k9,  v9);
+		}
+		return map;
 	}
 }

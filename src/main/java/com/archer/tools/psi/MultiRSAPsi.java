@@ -19,7 +19,7 @@ public class MultiRSAPsi {
 	/**
 	 * return Pair.p0 = uSet, Pair.p1 = rSet
 	 * */
-	public static Pair serverSend0(byte[] pk, List<byte[]> set) {
+	public static PsiResult serverSend0(byte[] pk, List<byte[]> set) {
 		int size = set.size();
 		int pNum = getThreadNum(size);
 		ThreadPoolExecutor pool = new ThreadPoolExecutor(pNum, pNum, ALIVE, TimeUnit.MILLISECONDS, 
@@ -53,20 +53,20 @@ public class MultiRSAPsi {
 	/**
 	 * return Pair.p0 = zSet, Pair.p1 = bSet
 	 * */
-	public static Pair clientSend1(byte[] sk, List<byte[]> uSet, List<byte[]> set) {
+	public static PsiResult clientSend1(byte[] sk, List<byte[]> uSet, List<byte[]> set) {
 		int uSize = uSet.size(), size = set.size();
 		int pNum = getThreadNum(size);
 		ThreadPoolExecutor pool = new ThreadPoolExecutor(pNum, pNum, ALIVE, TimeUnit.MILLISECONDS, 
 				new LinkedBlockingQueue<>(), new InnerThreadFactory(T_NAME));
 		int block = size / pNum;
 		int uNum = uSize / block;
-		ArrayList<Pair> blocks = new ArrayList<>(block + 1);
+		ArrayList<PsiResult> blocks = new ArrayList<>(block + 1);
 		for(int i = 0; i < block; i++) {
-			blocks.add(new Pair(uSet.subList(i * uNum, (i + 1) * uNum), set.subList(i * pNum, (i + 1) * pNum)));
+			blocks.add(new PsiResult(uSet.subList(i * uNum, (i + 1) * uNum), set.subList(i * pNum, (i + 1) * pNum)));
 		}
-		blocks.add(new Pair(uSet.subList(uNum * block, uSet.size()), set.subList(pNum * block, set.size())));
+		blocks.add(new PsiResult(uSet.subList(uNum * block, uSet.size()), set.subList(pNum * block, set.size())));
 		List<Task> tasks = new ArrayList<>(blocks.size());
-		for(Pair p: blocks) {
+		for(PsiResult p: blocks) {
 			Task t = new Task() {
 				public void apply() {
 					this.pair = RSAPsi.client1(sk, p.getP0(), p.getP1());
@@ -93,13 +93,13 @@ public class MultiRSAPsi {
 				new LinkedBlockingQueue<>(), new InnerThreadFactory(T_NAME));
 		int block = zSize / pNum;
 		int rNum = rSize / block;
-		ArrayList<Pair> blocks = new ArrayList<>(block + 1);
+		ArrayList<PsiResult> blocks = new ArrayList<>(block + 1);
 		for(int i = 0; i < block; i++) {
-			blocks.add(new Pair(zSet.subList(i * pNum, (i + 1) * pNum), rSet.subList(i * rNum, (i + 1) * rNum)));
+			blocks.add(new PsiResult(zSet.subList(i * pNum, (i + 1) * pNum), rSet.subList(i * rNum, (i + 1) * rNum)));
 		}
-		blocks.add(new Pair(zSet.subList(pNum * block, zSet.size()), rSet.subList(rNum * block, rSet.size())));
+		blocks.add(new PsiResult(zSet.subList(pNum * block, zSet.size()), rSet.subList(rNum * block, rSet.size())));
 		List<Task> tasks = new ArrayList<>(blocks.size());
-		for(Pair p: blocks) {
+		for(PsiResult p: blocks) {
 			Task t = new Task() {
 				public void apply() {
 					this.bytes = RSAPsi.server2(pk, p.getP0(), p.getP1());
@@ -120,15 +120,15 @@ public class MultiRSAPsi {
 		return RSAPsi.compare(aSet, bSet);
 	}
 	
-	private static Pair collectPairs(int size, List<Task> tasks) {
+	private static PsiResult collectPairs(int size, List<Task> tasks) {
 		ArrayList<byte[]> set0 = new ArrayList<>(size);
 		ArrayList<byte[]> set1 = new ArrayList<>(size);
 		for(Task t: tasks) {
-			Pair p = t.pair();
+			PsiResult p = t.pair();
 			set0.addAll(p.getP0());
 			set1.addAll(p.getP1());
 		}
-		return new Pair(set0, set1);
+		return new PsiResult(set0, set1);
 	}
 	
 	private static int getThreadNum(int size) {
@@ -164,7 +164,7 @@ public class MultiRSAPsi {
 	}
 	
 	static abstract class Task implements Runnable {
-		Pair pair;
+		PsiResult pair;
 		
 		List<byte[]> bytes;
 		
@@ -173,7 +173,7 @@ public class MultiRSAPsi {
 			apply();
 		}
 		
-		public Pair pair() {
+		public PsiResult pair() {
 			return pair;
 		}
 		

@@ -2,7 +2,6 @@ package com.archer.tools.java;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -40,7 +39,7 @@ public class ContainerUtil {
 		if(list == null || key == null) {
 			throw new NullPointerException();
 		}
-		Map<K, T> map = new HashMap<>();
+		Map<K, T> map = new ArcherMap<>();
 		for(T t: list) {
 			map.put(key.apply(t), t);
 		}
@@ -51,7 +50,7 @@ public class ContainerUtil {
 		if(list == null || key == null || val == null) {
 			throw new NullPointerException();
 		}
-		Map<K, V> map = new HashMap<>();
+		Map<K, V> map = new ArcherMap<>();
 		for(T t: list) {
 			map.put(key.apply(t), val.apply(t));
 		}

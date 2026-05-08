@@ -9,6 +9,13 @@ public class ExceptionUtil {
     private static final String more = "...";
 
     public static String formatException(Throwable ex) {
+        return formatException(ex, stackDepth);
+    }
+    
+    public static String formatException(Throwable ex, int stackDepth) {
+    	if(stackDepth <= 0) {
+    		throw new IllegalArgumentException("Invalid stackDepth " + stackDepth);
+    	}
         StackTraceElement[] stackTrace = ex.getStackTrace();
         int depth = Math.min(stackDepth, stackTrace.length);
         StringBuilder sb = new StringBuilder(ex.getClass().getName()).append(COLON).append(SPACE);
@@ -22,7 +29,7 @@ public class ExceptionUtil {
             sb.append(more).append(SPLIT).append(SPACE);
         }
         if(ex.getCause() != null) {
-            sb.append(formatException(ex.getCause()));
+            sb.append(formatException(ex.getCause(), stackDepth));
         }
         return sb.toString();
     }
