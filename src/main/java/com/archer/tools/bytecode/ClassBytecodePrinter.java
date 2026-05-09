@@ -125,7 +125,7 @@ public class ClassBytecodePrinter {
                 CodeAttribute codeAttribute = (CodeAttribute) attributes[j];
             	System.out.println(tab + name + ": nameIndex: #" + codeAttribute.getNameIndex() + ", length: " + codeAttribute.getLength()
             			+ ", maxStack: " + codeAttribute.getMaxStack() + ", maxLocals: " + codeAttribute.getMaxLocals()
-            			+ ", exception: " + Arrays.toString(codeAttribute.getException()) + ", code: " + Arrays.toString(codeAttribute.getCode()) + " {");
+            			+ ", exception: " + Arrays.toString(codeAttribute.getExceptionTable()) + ", code: " + Arrays.toString(codeAttribute.getCode()) + " {");
                 byte[] codes = codeAttribute.getCode();
             	for (int m = 0; m < codeAttribute.getCodeLength(); m++) {
                     int code = codes[m];

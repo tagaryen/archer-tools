@@ -2,6 +2,7 @@ package com.archer.tools.bytecode;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.util.Arrays;
 
 import com.archer.net.Bytes;
@@ -56,6 +57,11 @@ public class ClassBytecode {
 		this.interfaceIndexArr  = new int[0];
 		this.interfaces = new String[0];
 		this.classEnd = new ClassEnd();
+	}
+	
+	public ClassBytecode(Class<?> cls) {
+		this();
+		readAndDecodeClass(cls);
 	}
 	
 	public int getMagic() {
@@ -216,7 +222,6 @@ public class ClassBytecode {
 	}
 
 	public ClassBytecode fillSelfAsEmptyClass(String className, String pkg) {
-		
 		this.simpleName = className;
 		if(pkg.indexOf('.') == -1 && pkg.indexOf('/') == -1) {
 			this.className = pkg + '.' + className;
@@ -240,7 +245,7 @@ public class ClassBytecode {
 
 		
 		int index = 1;
-		ConstantInfo[] constants = new ConstantInfo[256];
+		ConstantInfo[] constants = new ConstantInfo[65536];
 		
 		ConstantClass clazzInfo = new ConstantClass();
 		clazzInfo.setNameIndex(2);
@@ -314,27 +319,17 @@ public class ClassBytecode {
 		
 		ConstantPool cp = new ConstantPool();
 		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
-		cp.setConstantPoolCount(cp.getCpInfo().length);
 		setConstantPool(cp);
-	
+
 		MemberInfo cons = new MemberInfo();
 		cons.setAccessFlags(1);
 		cons.setName("<init>");
 		cons.setDesc("()V");
 		cons.setNameIndex(consNameIndex);
 		cons.setDescriptorIndex(consDescIndex);
-		
-		CodeAttribute codeAttr = new CodeAttribute();
-		codeAttr.setName("Code");
-		codeAttr.setNameIndex(cp.findName("Code"));
-		codeAttr.setLength(17);
-		codeAttr.setMaxStack(1);
-		codeAttr.setMaxLocals(1);
-		codeAttr.setCode(new byte[] {42, -73, 0, (byte) constantPool.findMethod("<init>", "()V", "java/lang/Object"), -79});
-		
-		codeAttr.setException(new byte[0]);
-		codeAttr.setAttributes(new AttributeInfo[0]);
-		
+
+		byte[] data = {0, 1, 0, 1, 0, 0, 0, 5, 42, -73, 0, (byte) constantPool.findMethod("<init>", "()V", "java/lang/Object"), -79};
+		CodeAttribute codeAttr = new CodeAttribute(cp.findName("Code"), data.length, data);
 		cons.setAttributes(new AttributeInfo[] {codeAttr});
 		setMethods(new MemberInfo[] {cons});
 		
@@ -350,7 +345,7 @@ public class ClassBytecode {
 	}
 
 	
-    public ClassBytecode readAndDecodeClass(Class<?> cls) throws IOException {
+    public ClassBytecode readAndDecodeClass(Class<?> cls) {
     	this.className = cls.getName();
     	this.rawClassName = DescriptorUtil.replaceDot2Slash(cls.getName());
     	this.simpleName = cls.getSimpleName();
@@ -364,7 +359,7 @@ public class ClassBytecode {
 				rawClass.write(buf, 0, off);
 			}
 			decodeClassBytes(rawClass);
-		}
+		} catch(Exception ignore) {};
 		return this;
 	}
 	
@@ -582,8 +577,38 @@ public class ClassBytecode {
 		
 		ConstantPool cp = new ConstantPool();
 		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
-		cp.setConstantPoolCount(cp.getCpInfo().length);
 		newcls.setConstantPool(cp);
+		
+
+		Constructor<?>[] superCons = selfCls.getDeclaredConstructors();
+		for(Constructor<?> superCon: superCons) {
+			int consIndex = cp.addConstructor(superCon.getParameterTypes(), selfCls);
+			MemberInfo cons = new MemberInfo();
+			cons.setAccessFlags(2);
+			cons.setName("<init>");
+			Class<?>[] params = superCon.getParameterTypes();
+	    	String[] paramDesces = new String[params.length];
+    		for(int i = 0; i < params.length; i++) {
+    			paramDesces[i] = DescriptorUtil.getClassDescription(params[i]);
+    		}
+			cons.setDesc(DescriptorUtil.getMethodDescription(paramDesces, "V"));
+			cons.setNameIndex(consNameIndex);
+			cons.setDescriptorIndex(consDescIndex);
+			
+			int maxStack = 1, maxLocals = 1;
+
+//			CodeAttribute codeAttr = new CodeAttribute(cp.findName("Code"), );
+//			codeAttr.setMaxStack(1);
+//			codeAttr.setMaxLocals(1);
+//			codeAttr.setName("Code");
+//			codeAttr.setNameIndex(cp.findName("Code"));
+//			codeAttr.setLength(17);
+//			codeAttr.setMaxStack(1);
+//			codeAttr.setMaxLocals(1);
+//			codeAttr.setCode(new byte[] {42, -73, 0, (byte) constantPool.findMethod("<init>", "()V", "java/lang/Object"), -79});
+			
+		}
+		
 	
 		MemberInfo cons = new MemberInfo();
 		cons.setAccessFlags(1);
@@ -592,19 +617,19 @@ public class ClassBytecode {
 		cons.setNameIndex(consNameIndex);
 		cons.setDescriptorIndex(consDescIndex);
 		
-		CodeAttribute codeAttr = new CodeAttribute();
-		codeAttr.setName("Code");
-		codeAttr.setNameIndex(cp.findName("Code"));
-		codeAttr.setLength(17);
-		codeAttr.setMaxStack(1);
-		codeAttr.setMaxLocals(1);
-		codeAttr.setCode(new byte[] {42, -73, (byte) ((superInitIndex >> 8) & 0xff), (byte) (superInitIndex & 0xff), -79});
-		
-		codeAttr.setException(new byte[0]);
-		codeAttr.setAttributes(new AttributeInfo[0]);
-		
-		cons.setAttributes(new AttributeInfo[] {codeAttr});
-		newcls.setMethods(new MemberInfo[] {cons});
+//		CodeAttribute codeAttr = new CodeAttribute();
+//		codeAttr.setName("Code");
+//		codeAttr.setNameIndex(cp.findName("Code"));
+//		codeAttr.setLength(17);
+//		codeAttr.setMaxStack(1);
+//		codeAttr.setMaxLocals(1);
+//		codeAttr.setCode(new byte[] {42, -73, (byte) ((superInitIndex >> 8) & 0xff), (byte) (superInitIndex & 0xff), -79});
+//		
+//		codeAttr.setException(new byte[0]);
+//		codeAttr.setAttributes(new AttributeInfo[0]);
+//		
+//		cons.setAttributes(new AttributeInfo[] {codeAttr});
+//		newcls.setMethods(new MemberInfo[] {cons});
 		
 		ClassEnd end = new ClassEnd();
 		end.setSourceLen(1);

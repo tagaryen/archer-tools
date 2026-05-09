@@ -245,8 +245,94 @@ public class ByteCodeTest {
 		
 	}
 	
-	public static void main(String args[]) {
-		test();
+	public static void test2() {
+
+		try {
+			ClassBytecode impl = (new ClassBytecode()).readAndDecodeClass(Parent.class).generateImplClass("com.archer.tools.test.bytecode.Parent$Impl");
+			
+			/**
+			 * add field com.archer.tools.test.bytecode.Parent$Impl.nameCp Ljava/lang/String
+			 * 
+			 * add invoke method com/archer/tools/test/bytecode/ClassA.setName()
+			 * 
+			 * */
+			
+			impl.addField("nameCp", String.class, 1);
+			int fieldIndex = impl.getConstantPool().findField("nameCp", String.class);
+			int methodIndex = impl.getConstantPool().addMethod("setName", new String[] {"Ljava/lang/String;","I"}, "V", "com/archer/tools/test/bytecode/ClassA");
+			
+			
+			/**
+			 * add override method to com.archer.tools.test.bytecode.ClassA$Impl:
+			 * public void setName(String a0, int a1) {
+			 *     this.nameCp = a0;
+			 *     super.setName(null, a1);
+			 * }
+			 * 
+			 * */
+			CodeAttribute code = new CodeAttribute();
+			code.setMaxLocals(3);
+			code.setMaxStack(4);
+			code.setAttributes(new AttributeInfo[0]);
+			code.setException(new byte[0]);
+			code.setLength(12 + 13);
+			code.setNameIndex(impl.getConstantPool().findName("Code"));
+			code.setName("Code");
+			byte[] data = new byte[13];
+			data[0] = InstructionTable.getInstructionCode("aload_0");
+			data[1] = InstructionTable.getInstructionCode("aload_1");
+			data[2] = InstructionTable.getInstructionCode("putfield");
+			data[3] = (byte) ((fieldIndex >> 8) & 0xff);
+			data[4] = (byte) (fieldIndex & 0xff);
+			data[5] = InstructionTable.getInstructionCode("aload_0");
+			data[6] = InstructionTable.getInstructionCode("aconst_null");
+			data[7] = InstructionTable.getInstructionCode("iload_2");
+			data[9] = InstructionTable.getInstructionCode("invokespecial");
+			data[10] = (byte) ((methodIndex >> 8) & 0xff);
+			data[11] = (byte) (methodIndex & 0xff);
+			data[12] = InstructionTable.getInstructionCode("return");
+			code.setCode(data);
+			impl.addMethod("setName", new String[] {"Ljava/lang/String;","I"}, "V", code);
+			impl.refreshClassEnd();
+			
+//			Files.write(Paths.get("d:/test.class"), impl.encodeClassBytes().readAll());
+//			ClassBytecodePrinter.print(impl);
+			
+			
+			
+			ClassA classAins = (ClassA)ClassUtil.newInstance(impl.loadSelfClass());
+			classAins.setName("xuyihaoshuai", 18);
+
+			System.out.println(classAins.getName());
+			System.out.println(classAins.getAge());
+			
+			Field f = classAins.getClass().getDeclaredField("nameCp");
+			String nameCp = (String) f.get(classAins);
+			System.out.println(nameCp);
+
+			System.out.println(classAins.getClass().getName());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
+	}
+	
+	public static void main(String args[]) {
+//		ClassBytecode t = new ClassBytecode();
+//		try {
+//			t.readAndDecodeClass(ChildTask.class);
+//			ClassBytecodePrinter.print(t);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		ClassBytecode p = new ClassBytecode();
+//		try {
+//			p.readAndDecodeClass(Parent.class);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		AsyncProxy proxy = new AsyncProxy(p);
+//		proxy.newAsyncClass();
+		test();
 	}
 }

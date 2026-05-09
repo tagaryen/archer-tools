@@ -8,27 +8,22 @@ public class ConstantPool {
 	
 	private static final String SOURCE_FILE = "SourceFile";
 	
-	private int constantPoolCount;
 	private ConstantInfo[] cpInfo;
 
     public ConstantPool() {
-    	this(0, new ConstantInfo[0]);
+    	this(new ConstantInfo[1]);
     }
 
-    public ConstantPool(int constantPoolCount, ConstantInfo[] cpInfo) {
-		this.constantPoolCount = constantPoolCount;
+    public ConstantPool(ConstantInfo[] cpInfo) {
 		this.cpInfo = cpInfo;
 	}
 
 	public int getConstantPoolCount() {
-		return constantPoolCount;
+		return cpInfo.length;
 	}
 
 	public ConstantInfo[] getCpInfo() {
 		return cpInfo;
-	}
-	public void setConstantPoolCount(int constantPoolCount) {
-		this.constantPoolCount = constantPoolCount;
 	}
 
 	public void setCpInfo(ConstantInfo[] cpInfo) {
@@ -38,7 +33,7 @@ public class ConstantPool {
 
 
 	public void read(Bytes bytes) {
-        constantPoolCount = bytes.readInt16();
+        int constantPoolCount = bytes.readInt16();
         cpInfo = new ConstantInfo[constantPoolCount];
         for (int i = 1; i < constantPoolCount; i++) {
             int tag = (int) bytes.readInt8();
@@ -52,8 +47,8 @@ public class ConstantPool {
     }
     
     public void write(Bytes bytes) {
-    	bytes.writeInt16(constantPoolCount);
-        for (int i = 1; i < constantPoolCount; i++) {
+    	bytes.writeInt16(cpInfo.length);
+        for (int i = 1; i < cpInfo.length; i++) {
             ConstantInfo constantInfo = cpInfo[i];
             int tag = constantInfo.tag;
         	bytes.writeInt8(constantInfo.tag);
@@ -94,7 +89,7 @@ public class ConstantPool {
     public int addField(String name, String typeDesc) {
     	int idx = findField(name, typeDesc);
     	if(idx != 0) {
-    		throw new BytecodeException("duplicated field " + name);
+    		return idx;
     	}
     	int off = 0, fieldIndex = 0;
     	ConstantInfo[] appends = new ConstantInfo[4];
@@ -134,11 +129,25 @@ public class ConstantPool {
     	System.arraycopy(cpInfo, sourceIndex, newCpInfos, sourceIndex + off, cpInfo.length - sourceIndex);
     	
     	cpInfo = newCpInfos;
-    	constantPoolCount = cpInfo.length;
     	
     	return fieldIndex;
     }
     
+    public int addConstructor(Class<?>[] params, Class<?> refClass) {
+    	String[] paramDesces = null;
+    	if(params != null) {
+    		paramDesces = new String[params.length];
+    		for(int i = 0; i < params.length; i++) {
+    			paramDesces[i] = DescriptorUtil.getClassDescription(params[i]);
+    		}
+    	}
+    	String refClassDesc = DescriptorUtil.replaceDot2Slash(refClass.getName());
+    	return addMethod("<init>", paramDesces, "V", refClassDesc);
+    }
+    
+    public int addConstructor(String[] paramDesces, String refClassName) {
+    	return addMethod("<init>", paramDesces, "V", refClassName);
+    }
     
     public int addMethod(String name, Class<?>[] params, Class<?> returnType, Class<?> refClass) {
     	String[] paramDesces = null;
@@ -156,13 +165,13 @@ public class ConstantPool {
     	return addMethod(name, paramDesces, returnTypeDesc, refClassDesc);
     }
     
-
+    
 
     public int addMethod(String name, String[] paramDesces, String returnTypeDesc, String refClassName) {
     	String desc = DescriptorUtil.getMethodDescription(paramDesces, returnTypeDesc);
     	int methodIndex = findMethod(name, desc, refClassName);
     	if(methodIndex != 0) {
-    		throw new BytecodeException("duplicated method " + name);
+    		return methodIndex;
     	}
     	int off = 0, theMethodIndex = 0;
     	ConstantInfo[] appends = new ConstantInfo[16];
@@ -185,15 +194,6 @@ public class ConstantPool {
         	typeUtf8.setValue(desc);
         	appends[off++] = typeUtf8;
     	}
-//    	if(paramDesces != null) {
-//        	for(String s: paramDesces) {
-//            	if(findName(s) == 0) {
-//                	ConstantUtf8 typeUtf8 = new ConstantUtf8();
-//                	typeUtf8.setValue(desc);
-//                	appends[off++] = typeUtf8;
-//            	}
-//        	}
-//    	}
 
     	theMethodIndex = firstIndex + off;
     	ConstantMemberRef member = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
@@ -230,7 +230,6 @@ public class ConstantPool {
     	System.arraycopy(cpInfo, firstIndex, newCpInfos, firstIndex + off, cpInfo.length - firstIndex);
     	
     	cpInfo = newCpInfos;
-    	constantPoolCount = cpInfo.length;
     	
     	return theMethodIndex;
     }
@@ -244,7 +243,7 @@ public class ConstantPool {
     public int addClass(String className) {
     	int idx = findClass(className);
     	if(idx != 0) {
-    		throw new BytecodeException("duplicated class " + className);
+    		return idx;
     	}
 
     	int sourceIndex = findSourceIndex();
@@ -273,9 +272,51 @@ public class ConstantPool {
     	System.arraycopy(cpInfo, sourceIndex, newCpInfos, sourceIndex + off, cpInfo.length - sourceIndex);
     	
     	cpInfo = newCpInfos;
-    	constantPoolCount = cpInfo.length;
     	
     	return classIndex;
+    }
+    
+    public int addNameAndType(String name, String desc) {
+    	int idx = findNameAndType(name, desc);
+    	if(idx != 0) {
+    		return idx;
+    	}
+    	int nameIndex = addName(name);
+    	int descIndex = addName(desc);
+    	
+    	
+    	ConstantNameAndType info = new ConstantNameAndType();
+    	info.setNameIndex(nameIndex);
+    	info.setDescIndex(descIndex);
+
+    	ConstantInfo[] newCps = new ConstantInfo[cpInfo.length + 1];
+    	int sourceIndex = findSourceIndex();
+    	System.arraycopy(cpInfo, 0, newCps, 0, sourceIndex);
+    	newCps[sourceIndex] = info;
+    	System.arraycopy(cpInfo, sourceIndex, newCps, sourceIndex + 1, cpInfo.length - sourceIndex);
+        return sourceIndex;
+    }
+    
+    public int addMethodRef(Class<?> cls, String name, String desc) {
+    	String clsName = DescriptorUtil.replaceDot2Slash(cls.getName());
+    	int idx = findMethod(name, desc, clsName);
+    	if(idx != 0) {
+    		return idx;
+    	}
+    	int clsIndex = addClass(cls);
+    	int nameTypeIndex = addNameAndType(name, desc);
+
+
+    	ConstantMemberRef info = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
+    	info.setClassIndex(clsIndex);
+    	info.setNameAndTypeIndex(nameTypeIndex);
+    	
+    	ConstantInfo[] newCps = new ConstantInfo[cpInfo.length + 1];
+    	int sourceIndex = findSourceIndex();
+    	System.arraycopy(cpInfo, 0, newCps, 0, sourceIndex);
+    	newCps[sourceIndex] = info;
+    	System.arraycopy(cpInfo, sourceIndex, newCps, sourceIndex + 1, cpInfo.length - sourceIndex);
+        return sourceIndex;
     }
     
     public void resetUtf8Name(String oldName, String newName) {
@@ -296,6 +337,7 @@ public class ConstantPool {
     	}
     	return 0;
     }
+    
 
     public int findClass(Class<?> cls) {
     	return findClass(DescriptorUtil.replaceDot2Slash(cls.getName()));

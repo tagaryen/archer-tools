@@ -1,5 +1,6 @@
 package com.archer.tools.bytecode;
 
+
 import com.archer.net.Bytes;
 import com.archer.tools.bytecode.constantpool.ConstantInfo;
 import com.archer.tools.bytecode.constantpool.ConstantUtf8;
@@ -72,12 +73,52 @@ public class MemberInfo {
 		this.desc = desc;
 	}
 
+	public static class ExceptionTableEntry {
+        int startPc, endPc, handlerPc, catchType;
+
+		public int getStartPc() {
+			return startPc;
+		}
+
+		public void setStartPc(int startPc) {
+			this.startPc = startPc;
+		}
+
+		public int getEndPc() {
+			return endPc;
+		}
+
+		public void setEndPc(int endPc) {
+			this.endPc = endPc;
+		}
+
+		public int getHandlerPc() {
+			return handlerPc;
+		}
+
+		public void setHandlerPc(int handlerPc) {
+			this.handlerPc = handlerPc;
+		}
+
+		public int getCatchType() {
+			return catchType;
+		}
+
+		public void setCatchType(int catchType) {
+			this.catchType = catchType;
+		}
+        
+    }
+	
 	public static class AttributeInfo {
+       
 		private int nameIndex;
 		private int length;
 		private byte[] info;
-        
 		private String name;
+		
+		public AttributeInfo(int nameIdx, int len, byte[] data) { nameIndex = nameIdx; length = len; info = data; }
+       
 
 		public int getNameIndex() {
 			return nameIndex;
@@ -95,30 +136,49 @@ public class MemberInfo {
 			return name;
 		}
 
-		public void setNameIndex(int nameIndex) {
-			this.nameIndex = nameIndex;
-		}
-
-		public void setLength(int length) {
-			this.length = length;
-		}
-
-		public void setInfo(byte[] info) {
-			this.info = info;
-		}
-
 		public void setName(String name) {
 			this.name = name;
 		}
     }
     
+	public static class CodeAttributeWriter {
+		int nameIndex;
+		Bytes data;
+		
+		public CodeAttributeWriter(int maxStack, int maxLocals) {
+			data.writeInt16(maxStack);
+			data.writeInt16(maxLocals);
+		}
+		
+		public CodeAttributeWriter addInstruction(int instruction) {
+			data.writeInt8(instruction);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction8(int instruction, int pos) {
+			data.writeInt8(instruction);
+			data.writeInt8(pos);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction16(int instruction, int pos) {
+			data.writeInt8(instruction);
+			data.writeInt16(pos);
+			return this;
+		}
+	}
+	
     public static class CodeAttribute extends AttributeInfo {
-    	private int maxStack;
-    	private int maxLocals;
+
+    	public CodeAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+		}
+        
+    	private int maxStack, maxLocals;
     	private int codeLength;
     	private byte[] code;
     	private int excepetionTableLength;
-    	private byte[] exception;
+        private ExceptionTableEntry[] exceptionTable;
     	private int attributesCount;
     	private AttributeInfo[] attributes;
 		public int getMaxStack() {
@@ -136,9 +196,6 @@ public class MemberInfo {
 		public int getExcepetionTableLength() {
 			return excepetionTableLength;
 		}
-		public byte[] getException() {
-			return exception;
-		}
 		public int getAttributesCount() {
 			return attributesCount;
 		}
@@ -155,19 +212,27 @@ public class MemberInfo {
 			this.code = code;
 			this.codeLength = code.length;
 		}
-		public void setException(byte[] exception) {
-			this.exception = exception;
-			this.excepetionTableLength = exception.length / 8;
-		}
 		public void setAttributes(AttributeInfo[] attributes) {
 			this.attributes = attributes;
 			this.attributesCount = attributes.length;
+		}
+		public ExceptionTableEntry[] getExceptionTable() {
+			return exceptionTable;
+		}
+		public void setExceptionTable(ExceptionTableEntry[] exceptionTable) {
+			this.exceptionTable = exceptionTable;
+			this.excepetionTableLength = exceptionTable.length;
 		}
     	
     }
     
     public static class LineNumAttribute extends AttributeInfo {
-    	private int lineNumTableCount;
+    	
+    	public LineNumAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+		}
+		
+		private int lineNumTableCount;
     	/*
     	 * {
     	 * 		u2 start_pc  字节码位置   
@@ -191,7 +256,11 @@ public class MemberInfo {
     }
     
     public static class LocalVarAttribute extends AttributeInfo {
-    	private int localVarTableCount;
+
+    	public LocalVarAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+		}
+		private int localVarTableCount;
     	/*
     	 * {
     	 * 		u2 start_pc  字节码位置   
@@ -226,7 +295,7 @@ public class MemberInfo {
     	this.name = ((ConstantUtf8) cpInfo[nameIndex]).getValue();
     	this.desc = ((ConstantUtf8) cpInfo[descriptorIndex]).getValue();
     	
-    	readAttributes(bytes, cpInfo, attributes);
+    	readAttributes(bytes, attributes, cpInfo);
     }
 
     public void write(Bytes bytes) {
@@ -238,34 +307,42 @@ public class MemberInfo {
     	writeAttributes(bytes, attributes);
     }
     
-	private void readAttributes(Bytes bytes, ConstantInfo[] cpInfo, AttributeInfo[] attrs) {
-		for (int j = 0; j < attrs.length; j++) {
-    		int nameIndex = bytes.readInt16();
+	private void readAttributes(Bytes input, AttributeInfo[] attributes, ConstantInfo[] cpInfo) {
+		for (int j = 0; j < attributes.length; j++) {
+    		int nameIndex = input.readInt16();
+    		int length = input.readInt32();
+            byte[] info = input.read(length);
+            Bytes bytes = new Bytes(info);
     		String name = ((ConstantUtf8) cpInfo[nameIndex]).getValue();
     		if("Code".equals(name)) {
-    			CodeAttribute attr = new CodeAttribute();
+    			CodeAttribute attr = new CodeAttribute(nameIndex, length, info);
     			attr.setName(name);
-    			attr.setNameIndex(nameIndex);
-    			attr.setLength(bytes.readInt32()); //4bytes
+    			
     			attr.setMaxStack(bytes.readInt16()); //2bytes
     			attr.setMaxLocals(bytes.readInt16()); //2bytes
     			int codeLength = bytes.readInt32();   //4bytes
     			attr.setCode(bytes.read(codeLength)); //length bytes
     			
-    			int excepetionTableLength = bytes.readInt16();    // 2bytes
-    			// 2bytes startPc  2bytes endPc  2bytes handlerPc  2bytes catchType
-    			attr.setException(bytes.read(excepetionTableLength * 8)); // exLength * 8 bytes
-    			
+    			int exceptionTableLength = bytes.readInt16();    // 2bytes
+    			ExceptionTableEntry[] exceptions = new ExceptionTableEntry[exceptionTableLength];
+                for (int i = 0; i < exceptionTableLength; i++) {
+                    ExceptionTableEntry e = new ExceptionTableEntry();
+                    e.startPc = bytes.readInt16();
+                    e.endPc = bytes.readInt16();
+                    e.handlerPc = bytes.readInt16();
+                    e.catchType = bytes.readInt16();
+                    exceptions[i] = e;
+                }
+                
     			int attrCount = bytes.readInt16(); //2bytes
     			attr.setAttributes(new AttributeInfo[attrCount]);
-    			readAttributes(bytes, cpInfo, attr.attributes);
+    			readAttributes(bytes, attr.attributes, cpInfo);
     			
-    			attrs[j] = attr;
+    			attributes[j] = attr;
     		} else if("LineNumberTable".equals(name)) {
-    			LineNumAttribute attr = new LineNumAttribute();
+    			LineNumAttribute attr = new LineNumAttribute(nameIndex, length, info);
     			attr.setName(name);
-    			attr.setNameIndex(nameIndex);
-    			attr.setLength(bytes.readInt32());
+    			
     			attr.setLineNumTableCount(bytes.readInt16());
     			int[][] lineNumTable = new int[attr.lineNumTableCount][2];
     			attr.setLineNumTable(lineNumTable);
@@ -273,12 +350,11 @@ public class MemberInfo {
     				lineNumTable[i][0] = bytes.readInt16();
     				lineNumTable[i][1] = bytes.readInt16();
     			}
-    			attrs[j] = attr;
+    			attributes[j] = attr;
     		} else if("LocalVariableTable".equals(name)) {
-    			LocalVarAttribute attr = new LocalVarAttribute();
+    			LocalVarAttribute attr = new LocalVarAttribute(nameIndex, length, info);
     			attr.setName(name);
-    			attr.setNameIndex(nameIndex);
-    			attr.setLength(bytes.readInt32());
+    			
     			attr.setLocalVarTableCount(bytes.readInt16());
     			int[][] localVarTable = new int[attr.localVarTableCount][5];
     			attr.setLocalVarTable(localVarTable);
@@ -289,14 +365,11 @@ public class MemberInfo {
     				localVarTable[i][3] = bytes.readInt16();
     				localVarTable[i][4] = bytes.readInt16();
     			}
-    			attrs[j] = attr;
+    			attributes[j] = attr;
     		} else {
-    			AttributeInfo attr = new AttributeInfo();
+    			AttributeInfo attr = new AttributeInfo(nameIndex, length, info);
     			attr.setName(name);
-    			attr.setNameIndex(nameIndex);
-    			attr.setLength(bytes.readInt32());
-    			attr.setInfo(bytes.read(attr.length));
-    			attrs[j] = attr;
+    			attributes[j] = attr;
     		}
         }
 	}
@@ -306,40 +379,7 @@ public class MemberInfo {
 			AttributeInfo attr = attrs[j];
 			bytes.writeInt16(attr.nameIndex);
 			bytes.writeInt32(attr.length);
-			if(attr instanceof CodeAttribute) {
-				CodeAttribute cattr = (CodeAttribute) attr;
-				bytes.writeInt16(cattr.maxStack);
-				bytes.writeInt16(cattr.maxLocals);
-				
-				bytes.writeInt32(cattr.codeLength);
-				bytes.write(cattr.code);
-				
-				bytes.writeInt16(cattr.excepetionTableLength);
-				bytes.write(cattr.exception);
-				
-
-				bytes.writeInt16(cattr.attributesCount);
-				writeAttributes(bytes, cattr.attributes);
-			} else if(attr instanceof LineNumAttribute) {
-				LineNumAttribute lnattr = (LineNumAttribute) attr;
-				bytes.writeInt16(lnattr.lineNumTableCount);
-				for(int i = 0; i < lnattr.lineNumTableCount; i++) {
-					bytes.writeInt16(lnattr.lineNumTable[i][0]);
-					bytes.writeInt16(lnattr.lineNumTable[i][1]);
-				}
-			} else if(attr instanceof LocalVarAttribute) {
-				LocalVarAttribute lvattr = (LocalVarAttribute) attr;
-				bytes.writeInt16(lvattr.localVarTableCount);
-				for(int i = 0; i < lvattr.localVarTableCount; i++) {
-					bytes.writeInt16(lvattr.localVarTable[i][0]);
-					bytes.writeInt16(lvattr.localVarTable[i][1]);
-					bytes.writeInt16(lvattr.localVarTable[i][2]);
-					bytes.writeInt16(lvattr.localVarTable[i][3]);
-					bytes.writeInt16(lvattr.localVarTable[i][4]);
-				}
-			} else {
-				bytes.write(attr.info);
-			}
+			bytes.write(attr.info);
         }
 	}
 	

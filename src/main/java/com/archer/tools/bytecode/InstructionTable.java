@@ -205,6 +205,7 @@ public class InstructionTable {
 		    "goto_w",
 		    "jsr_w"
 		   };
+	
 	public static String get(int index) {
 		return TABLE[index];
 	}
