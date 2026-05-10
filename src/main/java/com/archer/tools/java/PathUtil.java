@@ -30,12 +30,23 @@ public class PathUtil {
     public static String getParentDir(String path) {
     	int sep = path.lastIndexOf(File.separator);
     	if(sep < 0) {
-    		throw new IllegalArgumentException("invalid path: '" + path + "'");
+    		return getParentDir(getCurrentWorkDir() + path);
     	}
     	if(sep == 0) {
     		return File.separator;
     	}
     	return path.substring(0, sep);
+    }
+    
+    public static String getLastFileName(String path) {
+    	int idx = path.lastIndexOf(File.separator);
+    	if(idx < 0) {
+    		return path;
+    	}
+    	if(idx >= path.length()) {
+    		throw new IllegalArgumentException("Invalid path: " + path);
+    	}
+    	return path.substring(idx + 1);
     }
     
     public static void mkdirs(File f) {

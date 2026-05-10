@@ -1,5 +1,7 @@
 package com.archer.tools.bytecode.util;
 
+import java.util.Arrays;
+
 public class DescriptorUtil {
 
 
@@ -65,6 +67,17 @@ public class DescriptorUtil {
 		return out;
 	}
 	
+    public static String getLastName(String name) {
+    	int idx = name.lastIndexOf('/');
+    	if(idx < 0) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	if(idx >= name.length()) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	return name.substring(idx + 1);
+    }
+    
 	public static String getMethodDescription(String[] paramDesces, String returnDesc) {
 		String out = "(";
 		if(paramDesces != null) {
@@ -100,4 +113,59 @@ public class DescriptorUtil {
     	}
     	return new String(bs);
     }
+    
+	public static boolean checkPrimitive(byte _1, byte _2) {
+		if(_1 == 'Z' || _1 == 'B' || _1 == 'C' || _1 == 'S' || _1 == 'I' || _1 == 'J' || _1 == 'F' || _1 == 'D') {
+			return _2 == 'L' || _2 == '[' || _2 == ')' || _2 == 'Z' || _2 == 'B' || _2 == 'C' || _2 == 'S' || _2 == 'I' || _2 == 'J' || _2 == 'F' || _2 == 'D';
+		}
+		return false;
+	}
+    
+	public static String[] methodDescToArgDescs(String desc) {
+		byte[] bs = desc.getBytes();
+		String[] types = new String[128];
+		int off = 0, typeS = 0;
+		for(int i = 1; i < bs.length - 2; i++) {
+			if(bs[i] == ')') {
+				break ;
+			}
+			if(checkPrimitive(bs[i], bs[i+1])) {
+				types[off++] = String.valueOf((char)bs[i]);
+				continue ;
+			}
+			if(bs[i] == '[') {
+				boolean ok = false;
+				typeS = i;
+				i++;
+				for(;i < bs.length - 2; i++) {
+					if(bs[i] == ';' || checkPrimitive(bs[i], bs[i+1])) {
+						types[off++] = new String(Arrays.copyOfRange(bs, typeS, i+1));
+						ok = true;
+						break;
+					}
+				}
+				if(!ok) {
+					throw new IllegalArgumentException("invalid method descriptor " + desc);
+				}
+				continue ;
+			}
+			if(bs[i] == 'L') {
+				boolean ok = false;
+				typeS = i;
+				i += 2;
+				for(; i < bs.length - 2; i++) {
+					if(bs[i] == ';') {
+						types[off++] = new String(Arrays.copyOfRange(bs, typeS, i+1));
+						ok = true;
+						break;
+					}
+				}
+				if(!ok) {
+					throw new IllegalArgumentException("invalid method descriptor " + desc);
+				}
+			}
+		}
+		return Arrays.copyOfRange(types, 0, off);
+	}
+	
 }

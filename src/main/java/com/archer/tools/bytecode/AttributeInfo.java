@@ -1,0 +1,530 @@
+package com.archer.tools.bytecode;
+
+import com.archer.net.Bytes;
+
+public class AttributeInfo {
+   
+	protected int nameIndex;
+	protected int length;
+	protected byte[] info;
+	protected String name;
+	
+	public AttributeInfo(int nameIdx, int len, byte[] data) { nameIndex = nameIdx; length = len; info = data; }
+   
+
+	public int getNameIndex() {
+		return nameIndex;
+	}
+
+	public int getLength() {
+		return length;
+	}
+
+	public byte[] getInfo() {
+		return info;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+
+	public void setInfo(byte[] info) {
+		this.info = info;
+		this.length = info.length;
+	}
+
+
+	public static class ExceptionTable {
+
+		int startPc, endPc, handlerPc, catchType;
+	
+		public int getStartPc() {
+			return startPc;
+		}
+	
+		public void setStartPc(int startPc) {
+			this.startPc = startPc;
+		}
+	
+		public int getEndPc() {
+			return endPc;
+		}
+	
+		public void setEndPc(int endPc) {
+			this.endPc = endPc;
+		}
+	
+		public int getHandlerPc() {
+			return handlerPc;
+		}
+	
+		public void setHandlerPc(int handlerPc) {
+			this.handlerPc = handlerPc;
+		}
+	
+		public int getCatchType() {
+			return catchType;
+		}
+	
+		public void setCatchType(int catchType) {
+			this.catchType = catchType;
+		}
+	}
+
+	public static class CodeAttributeWriter {
+		int nameIndex;
+		Bytes code = new Bytes();
+		private int maxStack, maxLocals;
+		
+		private CodeAttributeWriter(int nameIndex) {
+			this.nameIndex = nameIndex;
+		}
+		
+		public static CodeAttributeWriter of(int nameIndex) {
+			return new CodeAttributeWriter(nameIndex);
+		}
+		
+//		public CodeAttributeWriter addStackAndLocals(int maxStack, int maxLocals) {
+//			this.maxStack = maxStack;
+//			this.maxLocals = maxLocals;
+//			return this;
+//		}
+		
+		public CodeAttributeWriter addInstruction(int instructionCode) {
+			code.writeInt8(instructionCode);
+			maxStack++;
+			maxLocals++;
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction8(int instructionCode, int pos) {
+			code.writeInt8(instructionCode);
+			code.writeInt8(pos);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction16(int instructionCode, int pos) {
+			code.writeInt8(instructionCode);
+			code.writeInt16(pos);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction(String instruction) {
+			code.writeInt8(InstructionTable.getInstructionCode(instruction));
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction8(String instruction, int pos) {
+			code.writeInt8(InstructionTable.getInstructionCode(instruction));
+			code.writeInt8(pos);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction16(String instruction, int pos) {
+			code.writeInt8(InstructionTable.getInstructionCode(instruction));
+			code.writeInt16(pos);
+			return this;
+		}
+		public CodeAttributeWriter addCodes(byte[] codes) {
+			code.write(codes);
+			return this;
+		}
+		
+		public CodeAttribute toCodeAttribute() {
+			Bytes data = new Bytes();
+			data.writeInt16(maxStack);
+			data.writeInt16(maxLocals);
+			data.writeInt32(code.available());
+			data.readFromBytes(code);
+			data.writeInt16(0);// 0 exceptions
+			data.writeInt16(0);// 0 attributes
+			return new CodeAttribute(nameIndex, data.available(), data.readAll());
+		}
+	}
+	
+	public static class CodeAttribute extends AttributeInfo {
+	
+		public CodeAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+			parse();
+		}
+	    
+		private int maxStack, maxLocals;
+		private int codeLength;
+		private byte[] code = new byte[0];
+		private int exceptionTableLength;
+	    private ExceptionTable[] exceptionTable;
+		private int attributesCount;
+		private AttributeInfo[] attributes;
+		public int getMaxStack() {
+			return maxStack;
+		}
+		public int getMaxLocals() {
+			return maxLocals;
+		}
+		public int getCodeLength() {
+			return codeLength;
+		}
+		public byte[] getCode() {
+			return code;
+		}
+		public int getExcepetionTableLength() {
+			return exceptionTableLength;
+		}
+		public int getAttributesCount() {
+			return attributesCount;
+		}
+		public AttributeInfo[] getAttributes() {
+			return attributes;
+		}
+		public ExceptionTable[] getExceptionTable() {
+			return exceptionTable;
+		}
+		public void setMaxStack(int maxStack) {
+			this.maxStack = maxStack;
+			refreshInfo();
+		}
+		public void setMaxLocals(int maxLocals) {
+			this.maxLocals = maxLocals;
+			refreshInfo();
+		}
+		public void setCode(byte[] code) {
+			this.code = code;
+			this.codeLength = code.length;
+			refreshInfo();
+		}
+		public void setAttributes(AttributeInfo[] attributes) {
+			this.attributes = attributes;
+			this.attributesCount = attributes.length;
+			refreshInfo();
+		}
+		public void setExceptionTable(ExceptionTable[] exceptionTable) {
+			this.exceptionTable = exceptionTable;
+			this.exceptionTableLength = exceptionTable.length;
+			refreshInfo();
+		}
+		
+		private void refreshInfo() {
+
+			Bytes data = new Bytes();
+			data.writeInt16(maxStack);
+			data.writeInt16(maxLocals);
+			data.writeInt32(code.length);
+			data.write(code);
+			data.writeInt16(exceptionTableLength);
+			for(int i = 0; i < exceptionTableLength; i++) {
+	            ExceptionTable e = exceptionTable[i];
+	            data.writeInt16(e.startPc);
+	            data.writeInt16(e.endPc);
+	            data.writeInt16(e.handlerPc);
+	            data.writeInt16(e.catchType);
+			}
+
+			data.writeInt16(attributesCount);
+			for (int j = 0; j < attributesCount; j++) {
+				data.writeInt16(attributes[j].nameIndex);
+				data.writeInt32(attributes[j].length);
+				data.write(attributes[j].info);
+			}
+		}
+		
+		private void parse() {
+	        Bytes bytes = new Bytes(getInfo());
+			
+			maxStack = bytes.readInt16(); //2bytes
+			maxLocals = bytes.readInt16(); //2bytes
+			codeLength = bytes.readInt32();   //4bytes
+			code = bytes.read(codeLength);  //length bytes
+			
+			System.out.println("maxStack="+maxStack+"; maxLocals="+maxLocals);
+			
+			exceptionTableLength = bytes.readInt16();    // 2bytes
+			exceptionTable = new ExceptionTable[exceptionTableLength];
+			for (int i = 0; i < exceptionTableLength; i++) {
+	            ExceptionTable e = new ExceptionTable();
+	            e.startPc = bytes.readInt16();
+	            e.endPc = bytes.readInt16();
+	            e.handlerPc = bytes.readInt16();
+	            e.catchType = bytes.readInt16();
+	            exceptionTable[i] = e;
+	        }
+	        
+	        attributesCount = bytes.readInt16(); //2bytes
+	        attributes = new AttributeInfo[attributesCount];
+			for (int j = 0; j < attributes.length; j++) {
+	    		int nameIndex = bytes.readInt16();
+	    		int length = bytes.readInt32();
+	            byte[] info = bytes.read(length);
+				AttributeInfo attr = new AttributeInfo(nameIndex, length, info);
+				attributes[j] = attr;
+			}
+		}
+	}
+	
+	public static class LineNumAttribute extends AttributeInfo {
+		
+		public LineNumAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+			parse();
+		}
+		
+		private int lineNumTableCount;
+		/*
+		 * {
+		 * 		u2 start_pc  字节码位置   
+		 *      u2 line_number   源代码位置
+		 * } []
+		 * */
+		private int lineNumTable[][];
+		public int getLineNumTableCount() {
+			return lineNumTableCount;
+		}
+		public int[][] getLineNumTable() {
+			return lineNumTable;
+		}
+		public void setLineNumTableCount(int lineNumTableCount) {
+			this.lineNumTableCount = lineNumTableCount;
+		}
+		public void setLineNumTable(int[][] lineNumTable) {
+			this.lineNumTable = lineNumTable;
+		}
+	
+		private void parse() {
+	        Bytes bytes = new Bytes(getInfo());
+	
+			setLineNumTableCount(bytes.readInt16());
+			int[][] lineNumTable = new int[lineNumTableCount][2];
+			setLineNumTable(lineNumTable);
+			for(int i = 0; i < lineNumTableCount; i++) {
+				lineNumTable[i][0] = bytes.readInt16();
+				lineNumTable[i][1] = bytes.readInt16();
+			}
+		}
+	}
+	
+	public static class LocalVarAttribute extends AttributeInfo {
+	
+		public LocalVarAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+			parse();
+		}
+		private int localVarTableCount;
+		/*
+		 * {
+		 * 		u2 start_pc  字节码位置   
+		 *      u2 length   源代码位置
+		 *      u2 name_index 
+		 *      u2 desc_index
+		 *      u2 index
+		 * } []
+		 * */
+		private int localVarTable[][];
+		public int getLocalVarTableCount() {
+			return localVarTableCount;
+		}
+		public int[][] getLocalVarTable() {
+			return localVarTable;
+		}
+		public void setLocalVarTableCount(int localVarTableCount) {
+			this.localVarTableCount = localVarTableCount;
+		}
+		public void setLocalVarTable(int[][] localVarTable) {
+			this.localVarTable = localVarTable;
+		}
+	
+		private void parse() {
+	        Bytes bytes = new Bytes(getInfo());
+	
+			setLocalVarTableCount(bytes.readInt16());
+			int[][] localVarTable = new int[localVarTableCount][5];
+			setLocalVarTable(localVarTable);
+			for(int i = 0; i < localVarTableCount; i++) {
+				localVarTable[i][0] = bytes.readInt16();
+				localVarTable[i][1] = bytes.readInt16();
+				localVarTable[i][2] = bytes.readInt16();
+				localVarTable[i][3] = bytes.readInt16();
+				localVarTable[i][4] = bytes.readInt16();
+			}
+		}
+	}
+	
+	public static class ExceptionAttribute extends AttributeInfo {
+
+		public ExceptionAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+			parse();
+		}
+		
+		public ExceptionAttribute(int nameIdx, int classIndex, int exceptionClassIndex) {
+			super(nameIdx, 0, null);
+			this.classIndex = classIndex;
+			this.exceptionClassIndex = exceptionClassIndex;
+			refreshInfo();
+		}
+
+		int classIndex, exceptionClassIndex;
+	
+		
+		public int getClassIndex() {
+			return classIndex;
+		}
+
+		public void setClassIndex(int classIndex) {
+			this.classIndex = classIndex;
+			refreshInfo();
+		}
+
+		public int getExceptionClassIndex() {
+			return exceptionClassIndex;
+		}
+
+		public void setExceptionClassIndex(int exceptionClassIndex) {
+			this.exceptionClassIndex = exceptionClassIndex;
+			refreshInfo();
+		}
+
+		private void parse() {
+			Bytes bytes = new Bytes(info);
+			classIndex = bytes.readInt16();
+			exceptionClassIndex = bytes.readInt16();
+			System.out.println("exceptions classIndex="+classIndex +"; exceptionClassIndex="+exceptionClassIndex);
+		}
+		
+		private void refreshInfo() {
+			Bytes data = new Bytes();
+            data.writeInt16(classIndex);
+            data.writeInt16(exceptionClassIndex);
+            setInfo(data.readAll());
+		}
+	}
+
+	
+	public static class SourceFileAttribute extends AttributeInfo {
+		
+		public SourceFileAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+			parse();
+		}
+		
+
+		public SourceFileAttribute(int nameIdx, int fileNameIndex) {
+			super(nameIdx, 0, null);
+			setInfo(new byte[] {(byte)((fileNameIndex >> 8) & 0xff), (byte)(fileNameIndex & 0xff)});
+			
+		}
+		
+		private int fileNameIndex;
+		
+		private void parse() {
+			byte[] data = getInfo();
+			int b0 = data[0], b1 = data[1];
+			if(b0 < 0) b0 = 256 + b0;
+			if(b0 < 0) b0 = 256 + b0;
+			this.fileNameIndex = (b0 << 8) | b1;
+		}
+
+		public int getFileNameIndex() {
+			return fileNameIndex;
+		}
+
+		public void setFileNameIndex(int fileNameIndex) {
+			this.fileNameIndex = fileNameIndex;
+			setInfo(new byte[] {(byte)((fileNameIndex >> 8) & 0xff), (byte)(fileNameIndex & 0xff)});
+		}
+	}
+	
+	public static class InnerClass {
+
+	    private int classIndex;
+	    private int outerClassIndex;
+	    private int innerNameIndex;
+	    private int accessFlag;
+	    
+	    
+	    public void decode(Bytes data) {
+	    	classIndex = data.readInt16();
+	    	outerClassIndex = data.readInt16();
+	    	innerNameIndex = data.readInt16();
+	    	accessFlag = data.readInt16();
+	    }
+	    
+	    public Bytes encode() {
+	    	Bytes data = new Bytes();
+	    	data.writeInt16(classIndex);
+	    	data.writeInt16(outerClassIndex);
+	    	data.writeInt16(innerNameIndex);
+	    	data.writeInt16(accessFlag);
+	    	return data;
+	    }
+	    
+		public int getClassIndex() {
+			return classIndex;
+		}
+		public void setClassIndex(int classIndex) {
+			this.classIndex = classIndex;
+		}
+		public int getOuterClassIndex() {
+			return outerClassIndex;
+		}
+		public void setOuterClassIndex(int outerClassIndex) {
+			this.outerClassIndex = outerClassIndex;
+		}
+		public int getInnerNameIndex() {
+			return innerNameIndex;
+		}
+		public void setInnerNameIndex(int innerNameIndex) {
+			this.innerNameIndex = innerNameIndex;
+		}
+		public int getAccessFlag() {
+			return accessFlag;
+		}
+		public void setAccessFlag(int accessFlag) {
+			this.accessFlag = accessFlag;
+		}
+	}
+	
+	
+	public static class InnerClassAttribute extends AttributeInfo {
+		
+		public InnerClassAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+			parse();
+		}
+		
+		public InnerClassAttribute(int nameIdx, InnerClass[] innerClass) {
+			super(nameIdx, 0, null);
+			Bytes data = new Bytes();
+			data.writeInt16(innerClass.length);
+			for(InnerClass in : innerClass) {
+				data.readFromBytes(in.encode());
+			}
+			length = data.available();
+			info = data.readAll();
+			
+			this.innerClassCount = innerClass.length;
+			this.innerClass = innerClass;
+		}
+
+		
+	    private int innerClassCount;
+	    private InnerClass[] innerClass;
+	    
+		
+		private void parse() {
+			Bytes data = new Bytes(getInfo());
+			innerClassCount = data.readInt16();
+			innerClass = new InnerClass[innerClassCount];
+			for(int i = 0; i < innerClassCount; i++) {
+				innerClass[i] = new InnerClass();
+				innerClass[i].decode(data);
+			}
+		}
+
+	}
+}
+

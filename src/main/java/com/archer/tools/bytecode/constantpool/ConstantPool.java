@@ -46,7 +46,7 @@ public class ConstantPool {
         }
     }
     
-    public void write(Bytes bytes) {
+    public void writeInto(Bytes bytes) {
     	bytes.writeInt16(cpInfo.length);
         for (int i = 1; i < cpInfo.length; i++) {
             ConstantInfo constantInfo = cpInfo[i];
@@ -148,6 +148,10 @@ public class ConstantPool {
     public int addConstructor(String[] paramDesces, String refClassName) {
     	return addMethod("<init>", paramDesces, "V", refClassName);
     }
+
+    public int addConstructor(String constructorDesc, String refClassName) {
+    	return addMethod("<init>", constructorDesc, refClassName);
+    }
     
     public int addMethod(String name, Class<?>[] params, Class<?> returnType, Class<?> refClass) {
     	String[] paramDesces = null;
@@ -165,11 +169,13 @@ public class ConstantPool {
     	return addMethod(name, paramDesces, returnTypeDesc, refClassDesc);
     }
     
-    
-
     public int addMethod(String name, String[] paramDesces, String returnTypeDesc, String refClassName) {
     	String desc = DescriptorUtil.getMethodDescription(paramDesces, returnTypeDesc);
-    	int methodIndex = findMethod(name, desc, refClassName);
+    	return addMethod(name, desc, refClassName);
+    }
+    
+    public int addMethod(String name, String methodDesc, String refClassName) {
+    	int methodIndex = findMethod(name, methodDesc, refClassName);
     	if(methodIndex != 0) {
     		return methodIndex;
     	}
@@ -187,11 +193,11 @@ public class ConstantPool {
         	appends[off++] = typeUtf8;
     	}
     	
-    	int descIndex = findName(desc);
+    	int descIndex = findName(methodDesc);
     	if(descIndex == 0) {
     		descIndex = firstIndex + off;
         	ConstantUtf8 typeUtf8 = new ConstantUtf8();
-        	typeUtf8.setValue(desc);
+        	typeUtf8.setValue(methodDesc);
         	appends[off++] = typeUtf8;
     	}
 
@@ -331,6 +337,20 @@ public class ConstantPool {
     	for(int i = 1; i < cpInfo.length; i++) {
     		if(cpInfo[i].tag == ConstantInfo.CONSTANT_Utf8) {
     			if(((ConstantUtf8)cpInfo[i]).getValue().equals(SOURCE_FILE)) {
+    				return i;
+    			}
+    		}
+    	}
+    	return 0;
+    }
+    
+    public int findFileNameIndex() {
+		ConstantClass currentCls = (ConstantClass) cpInfo[1];
+		String name = ((ConstantUtf8)cpInfo[currentCls.getNameIndex()]).getValue();
+		String fileName = DescriptorUtil.getLastName(name) + ".java";
+    	for(int i = 1; i < cpInfo.length; i++) {
+    		if(cpInfo[i].tag == ConstantInfo.CONSTANT_Utf8) {
+    			if(((ConstantUtf8)cpInfo[i]).getValue().equals(fileName)) {
     				return i;
     			}
     		}

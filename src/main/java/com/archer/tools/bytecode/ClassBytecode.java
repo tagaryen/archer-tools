@@ -2,12 +2,12 @@ package com.archer.tools.bytecode;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import com.archer.net.Bytes;
-import com.archer.tools.bytecode.MemberInfo.AttributeInfo;
-import com.archer.tools.bytecode.MemberInfo.CodeAttribute;
+import com.archer.tools.bytecode.AttributeInfo.*;
 import com.archer.tools.bytecode.constantpool.ConstantClass;
 import com.archer.tools.bytecode.constantpool.ConstantInfo;
 import com.archer.tools.bytecode.constantpool.ConstantMemberRef;
@@ -20,8 +20,6 @@ import com.archer.tools.bytecode.util.DescriptorUtil;
 public class ClassBytecode {
 	
 	private static BytecodeClassLoader loader = new BytecodeClassLoader();
-
-	private Class<?> selfCls;
 	
 	private int magic;
     private int minorVersion;
@@ -37,10 +35,9 @@ public class ClassBytecode {
     private MemberInfo[] fields;
     private int methodCount;
     private MemberInfo[] methods;
-    
-    private ClassEnd classEnd;
-    
-    
+    private int attributeCount;
+    private AttributeInfo[] attributes;
+   
     
     private String rawClassName;
     private String simpleName;
@@ -56,7 +53,7 @@ public class ClassBytecode {
 		this.methods = new MemberInfo[0];
 		this.interfaceIndexArr  = new int[0];
 		this.interfaces = new String[0];
-		this.classEnd = new ClassEnd();
+		this.attributes = new AttributeInfo[0];
 	}
 	
 	public ClassBytecode(Class<?> cls) {
@@ -121,8 +118,8 @@ public class ClassBytecode {
 		return interfaceIndexArr;
 	}
 
-	public ClassEnd getClassEnd() {
-		return classEnd;
+	public AttributeInfo[] getAttributes() {
+		return attributes;
 	}
 
 	public void setMagic(int magic) {
@@ -171,10 +168,12 @@ public class ClassBytecode {
 		this.methodCount = methods.length;
 	}
 
-	public void setClassEnd(ClassEnd classEnd) {
-		this.classEnd = classEnd;
+	public void setAttributes(AttributeInfo[] attributes) {
+		this.attributes = attributes;
+		this.attributeCount = attributes.length;
 	}
-
+	
+	
 	public void setClassName(String className) {
 		if(className.indexOf('.') == -1 && className.indexOf('/') == -1) {
 			if(className.equals(this.simpleName)) {
@@ -220,137 +219,12 @@ public class ClassBytecode {
 	public void setInterface(boolean isInterface) {
 		this.isInterface = isInterface;
 	}
-
-	public ClassBytecode fillSelfAsEmptyClass(String className, String pkg) {
-		this.simpleName = className;
-		if(pkg.indexOf('.') == -1 && pkg.indexOf('/') == -1) {
-			this.className = pkg + '.' + className;
-			this.rawClassName = pkg + '/' + className;
-		} else if(pkg.indexOf('.') == -1) {
-			this.className = DescriptorUtil.replaceSlash2Dot(pkg) + '.' + className;
-			this.rawClassName = pkg + '/' + className;
-		} else if(pkg.indexOf('/') == -1) {
-			this.className = pkg + '.' + className;
-			this.rawClassName = DescriptorUtil.replaceDot2Slash(pkg) + '/' + className;
-		}
-		
-		setMagic(-889275714);
-		setMinorVersion(0);
-		setMajorVersion(52);
-		setAccessFlag(1);
-		setClassIndex(1);
-		setSuperIndex(3);
-		setInterfaceCount(0);
-		setInterfaceIndexArr(new int[0]);
-
-		
-		int index = 1;
-		ConstantInfo[] constants = new ConstantInfo[65536];
-		
-		ConstantClass clazzInfo = new ConstantClass();
-		clazzInfo.setNameIndex(2);
-		constants[index++] = clazzInfo;
-		
-		ConstantUtf8 clazzUtf8Info = new ConstantUtf8();
-		clazzUtf8Info.setValue(rawClassName);
-		constants[index++] = clazzUtf8Info;
-		
-		ConstantClass superInfo = new ConstantClass();
-		superInfo.setNameIndex(4);
-		constants[index++] = superInfo;
-		
-		ConstantUtf8 superUtf8Info = new ConstantUtf8();
-		superUtf8Info.setValue("java/lang/Object");
-		constants[index++] = superUtf8Info;
-
-		ConstantUtf8 mcode = new ConstantUtf8();
-		mcode.setValue("Code");
-		constants[index++] = mcode;
-
-		ConstantUtf8 lnt = new ConstantUtf8();
-		lnt.setValue("LineNumberTable");
-		constants[index++] = lnt;
-
-		ConstantUtf8 lvt = new ConstantUtf8();
-		lvt.setValue("LocalVariableTable");
-		constants[index++] = lvt;
-		
-
-		ConstantUtf8 thi = new ConstantUtf8();
-		thi.setValue("this");
-		constants[index++] = thi;
-		
-		String classTypeName = "L"+rawClassName + ";";
-		ConstantUtf8 thiType = new ConstantUtf8();
-		thiType.setValue(classTypeName);
-		constants[index++] = thiType;
-		
-		int consNameIndex = index;
-		ConstantUtf8 consName = new ConstantUtf8();
-		consName.setValue("<init>");
-		constants[index++] = consName;
-		
-
-		int consDescIndex = index;
-		ConstantUtf8 consDesc = new ConstantUtf8();
-		consDesc.setValue("()V");
-		constants[index++] = consDesc;
-		
-		ConstantMemberRef consMethod = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
-		consMethod.setClassIndex(3);
-		consMethod.setNameAndTypeIndex(index + 1);
-		constants[index++] = consMethod;
-		
-		ConstantNameAndType consNameType = new ConstantNameAndType();
-		consNameType.setNameIndex(consNameIndex);
-		consNameType.setDescIndex(consDescIndex);
-		constants[index++] = consNameType;
-		
-
-		int sourceIndex = index;
-		ConstantUtf8 source = new ConstantUtf8();
-		source.setValue("SourceFile");
-		constants[index++] = source;
-
-		int sourceNameIndex = index;
-		ConstantUtf8 sourceName = new ConstantUtf8();
-		sourceName.setValue(simpleName+".java");
-		constants[index++] = sourceName;
-		
-		ConstantPool cp = new ConstantPool();
-		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
-		setConstantPool(cp);
-
-		MemberInfo cons = new MemberInfo();
-		cons.setAccessFlags(1);
-		cons.setName("<init>");
-		cons.setDesc("()V");
-		cons.setNameIndex(consNameIndex);
-		cons.setDescriptorIndex(consDescIndex);
-
-		byte[] data = {0, 1, 0, 1, 0, 0, 0, 5, 42, -73, 0, (byte) constantPool.findMethod("<init>", "()V", "java/lang/Object"), -79};
-		CodeAttribute codeAttr = new CodeAttribute(cp.findName("Code"), data.length, data);
-		cons.setAttributes(new AttributeInfo[] {codeAttr});
-		setMethods(new MemberInfo[] {cons});
-		
-		ClassEnd end = new ClassEnd();
-		end.setSourceLen(1);
-		end.setSourceIndex(sourceIndex);
-		end.setSourceNop(2);
-		end.setSourceNameIndex(sourceNameIndex);
-		
-		setClassEnd(end);
-		
-		return this;
-	}
-
 	
     public ClassBytecode readAndDecodeClass(Class<?> cls) {
     	this.className = cls.getName();
     	this.rawClassName = DescriptorUtil.replaceDot2Slash(cls.getName());
     	this.simpleName = cls.getSimpleName();
-    	this.selfCls = cls;
-    	this.isInterface = this.selfCls.isInterface();
+    	this.isInterface = cls.isInterface();
 		try(InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(rawClassName + ".class")) {
 			Bytes rawClass = new Bytes();
 			byte[] buf = new byte[1024];
@@ -362,7 +236,13 @@ public class ClassBytecode {
 		} catch(Exception ignore) {};
 		return this;
 	}
-	
+    
+    public ClassBytecode readAndDecodeClass(String classFilePath) throws IOException {
+    	byte[] content = Files.readAllBytes(Paths.get(classFilePath));
+		decodeClassBytes(new Bytes(content));
+		return this;
+	}
+    
 	public void decodeClassBytes(Bytes bytes) {
     	this.magic = bytes.readInt32();
     	this.minorVersion = bytes.readInt16();
@@ -404,7 +284,7 @@ public class ClassBytecode {
         MemberInfo[] fields = new MemberInfo[fieldCount];
         for (int i = 0; i < fieldCount; i++) {
         	fields[i] = new MemberInfo();
-        	fields[i].read(bytes, cpInfo);
+        	fields[i].read(bytes, constantPool);
         }
         this.fields = fields;
 
@@ -413,12 +293,30 @@ public class ClassBytecode {
         MemberInfo[] methods = new MemberInfo[methodCount];
         for (int i = 0; i < methodCount; i++) {
         	methods[i] = new MemberInfo();
-        	methods[i].read(bytes, cpInfo);
+        	methods[i].read(bytes, constantPool);
         }
         this.methods = methods;
         
-        this.classEnd = new ClassEnd();
-        this.classEnd.read(bytes);
+
+        // 类属性
+        this.attributeCount = bytes.readInt16();
+        attributes = new AttributeInfo[this.attributeCount];
+		for (int j = 0; j < attributes.length; j++) {
+    		int nameIndex = bytes.readInt16();
+    		int length = bytes.readInt32();
+            byte[] info = bytes.read(length);
+    		String name = ((ConstantUtf8) cpInfo[nameIndex]).getValue();
+    		AttributeInfo attr;
+    		if("SourceFile".equals(name)) {
+    			attr = new SourceFileAttribute(nameIndex, length, info);
+    		} else if("InnerClass".equals(name)) {
+    			attr = new InnerClassAttribute(nameIndex, length, info);
+    		} else {
+    			attr = new AttributeInfo(nameIndex, length, info);
+    		}
+			attr.setName(name);
+			attributes[j] = attr;
+		}
     }
 	
 	
@@ -430,7 +328,7 @@ public class ClassBytecode {
 		opcode.writeInt16(majorVersion);
 		
 		//写入常量池
-		this.constantPool.write(opcode);
+		constantPool.writeInto(opcode);
 		
 		
 		//写入类信息
@@ -449,22 +347,28 @@ public class ClassBytecode {
 		//写入获取字段信息
 		opcode.writeInt16(fieldCount);
 		for (int i = 0; i < fieldCount; i++) {
-			fields[i].write(opcode);
+			fields[i].writeInto(opcode);
 	    }
 
 		//写入获取方法信息
 		opcode.writeInt16(methodCount);
 		for (int i = 0; i < methodCount; i++) {
-			methods[i].write(opcode);
+			methods[i].writeInto(opcode);
 	    }
 		
-		classEnd.write(opcode);
+		//写入类属性
+		opcode.writeInt16(attributeCount);
+		for (int j = 0; j < attributes.length; j++) {
+			AttributeInfo attr = attributes[j];
+			opcode.writeInt16(attr.getNameIndex());
+			opcode.writeInt32(attr.getLength());
+			opcode.write(attr.getInfo());
+        }
 		
 		return opcode;
 	}
 	
 	public Class<?> loadSelfClass() {
-		refreshClassEnd();
 		Bytes codeBs = encodeClassBytes();
 		try {
 			return loader.defineBytecodeClass(className, codeBs.array(), 0, codeBs.available()); 
@@ -474,6 +378,126 @@ public class ClassBytecode {
 			throw new RuntimeException(e);
 		}
 	}
+	
+
+	public void empty(String className, String pkg) {
+		this.simpleName = className;
+		if(pkg.indexOf('.') == -1 && pkg.indexOf('/') == -1) {
+			this.className = pkg + '.' + className;
+			this.rawClassName = pkg + '/' + className;
+		} else if(pkg.indexOf('.') == -1) {
+			this.className = DescriptorUtil.replaceSlash2Dot(pkg) + '.' + className;
+			this.rawClassName = pkg + '/' + className;
+		} else if(pkg.indexOf('/') == -1) {
+			this.className = pkg + '.' + className;
+			this.rawClassName = DescriptorUtil.replaceDot2Slash(pkg) + '/' + className;
+		}
+		
+		setMagic(-889275714);
+		setMinorVersion(0);
+		setMajorVersion(52);
+		setAccessFlag(1);
+		setClassIndex(1);
+		setSuperIndex(3);
+		setInterfaceCount(0);
+		setInterfaceIndexArr(new int[0]);
+
+		
+		int index = 1;
+		ConstantInfo[] constants = new ConstantInfo[65536];
+		
+		ConstantClass clazzInfo = new ConstantClass();
+		clazzInfo.setNameIndex(2);
+		constants[index++] = clazzInfo;
+		
+		ConstantUtf8 clazzUtf8Info = new ConstantUtf8();
+		clazzUtf8Info.setValue(rawClassName);
+		constants[index++] = clazzUtf8Info;
+		
+		ConstantClass superInfo = new ConstantClass();
+		superInfo.setNameIndex(4);
+		constants[index++] = superInfo;
+		
+		ConstantUtf8 superUtf8Info = new ConstantUtf8();
+		superUtf8Info.setValue("java/lang/Object");
+		constants[index++] = superUtf8Info;
+
+		int codeIndex = index;
+		ConstantUtf8 mcode = new ConstantUtf8();
+		mcode.setValue("Code");
+		constants[index++] = mcode;
+
+		ConstantUtf8 lnt = new ConstantUtf8();
+		lnt.setValue("LineNumberTable");
+		constants[index++] = lnt;
+
+		ConstantUtf8 lvt = new ConstantUtf8();
+		lvt.setValue("LocalVariableTable");
+		constants[index++] = lvt;
+		
+
+		ConstantUtf8 thi = new ConstantUtf8();
+		thi.setValue("this");
+		constants[index++] = thi;
+		
+		String classTypeName = "L"+rawClassName + ";";
+		ConstantUtf8 thiType = new ConstantUtf8();
+		thiType.setValue(classTypeName);
+		constants[index++] = thiType;
+		
+		int consNameIndex = index;
+		ConstantUtf8 consName = new ConstantUtf8();
+		consName.setValue("<init>");
+		constants[index++] = consName;
+		
+
+		int consDescIndex = index;
+		ConstantUtf8 consDesc = new ConstantUtf8();
+		consDesc.setValue("()V");
+		constants[index++] = consDesc;
+		
+		int consMethodIndex = index;
+		ConstantMemberRef consMethod = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
+		consMethod.setClassIndex(3);
+		consMethod.setNameAndTypeIndex(index + 1);
+		constants[index++] = consMethod;
+		
+		ConstantNameAndType consNameType = new ConstantNameAndType();
+		consNameType.setNameIndex(consNameIndex);
+		consNameType.setDescIndex(consDescIndex);
+		constants[index++] = consNameType;
+		
+
+		int sourceIndex = index;
+		ConstantUtf8 source = new ConstantUtf8();
+		source.setValue("SourceFile");
+		constants[index++] = source;
+
+		int fileNameIndex = index;
+		ConstantUtf8 sourceName = new ConstantUtf8();
+		sourceName.setValue(simpleName+".java");
+		constants[index++] = sourceName;
+		
+		ConstantPool cp = new ConstantPool();
+		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
+		setConstantPool(cp);
+
+		MemberInfo cons = new MemberInfo();
+		cons.setAccessFlags(1);
+		cons.setNameIndex(consNameIndex);
+		cons.setDescriptorIndex(consDescIndex);
+		CodeAttribute codeAttr = CodeAttributeWriter.of(codeIndex)
+			.addInstruction("aload_0")
+			.addInstruction16("invokespecial", consMethodIndex)
+			.addInstruction("return").toCodeAttribute();
+		cons.setAttributes(new AttributeInfo[] {codeAttr});
+		setMethods(new MemberInfo[] {cons});
+		
+		AttributeInfo[] attrs = new AttributeInfo[1];
+		attrs[0] = new SourceFileAttribute(sourceIndex, fileNameIndex);
+		setAttributes(attrs);
+	}
+
 	
 	public ClassBytecode generateImplClass(String name) {
 		ClassBytecode newcls = new ClassBytecode();
@@ -520,6 +544,7 @@ public class ClassBytecode {
 		superUtf8Info.setValue(this.rawClassName);
 		constants[index++] = superUtf8Info;
 		
+		int codeNameIndex = index;
 		ConstantUtf8 mcode = new ConstantUtf8();
 		mcode.setValue("Code");
 		constants[index++] = mcode;
@@ -542,35 +567,10 @@ public class ClassBytecode {
 		thiType.setValue(classTypeName);
 		constants[index++] = thiType;
 		
-		int consNameIndex = index;
-		ConstantUtf8 consName = new ConstantUtf8();
-		consName.setValue("<init>");
-		constants[index++] = consName;
-		
-
-		int consDescIndex = index;
-		ConstantUtf8 consDesc = new ConstantUtf8();
-		consDesc.setValue("()V");
-		constants[index++] = consDesc;
-
-		int superInitIndex = index;
-		ConstantMemberRef consMethod = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
-		consMethod.setClassIndex(3);
-		consMethod.setNameAndTypeIndex(index + 1);
-		constants[index++] = consMethod;
-		
-		ConstantNameAndType consNameType = new ConstantNameAndType();
-		consNameType.setNameIndex(consNameIndex);
-		consNameType.setDescIndex(consDescIndex);
-		constants[index++] = consNameType;
-		
-
-		int sourceIndex = index;
 		ConstantUtf8 source = new ConstantUtf8();
 		source.setValue("SourceFile");
 		constants[index++] = source;
 
-		int sourceNameIndex = index;
 		ConstantUtf8 sourceName = new ConstantUtf8();
 		sourceName.setValue(newcls.simpleName+".java");
 		constants[index++] = sourceName;
@@ -578,66 +578,69 @@ public class ClassBytecode {
 		ConstantPool cp = new ConstantPool();
 		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
 		newcls.setConstantPool(cp);
-		
 
-		Constructor<?>[] superCons = selfCls.getDeclaredConstructors();
-		for(Constructor<?> superCon: superCons) {
-			int consIndex = cp.addConstructor(superCon.getParameterTypes(), selfCls);
+		MemberInfo[] newmethods = new MemberInfo[256];
+		int newmethodOff = 0;
+		
+		ConstantInfo[] superConst = constantPool.getCpInfo();
+        for (int i = 0; i < methodCount; i++) {
+        	String methodName = ((ConstantUtf8)superConst[methods[i].getNameIndex()]).getValue();
+        	if(!"<init>".equals(methodName)) {
+        		continue;
+        	}
+        	String descName = ((ConstantUtf8)superConst[methods[i].getDescriptorIndex()]).getValue();
+        	
+			int consIndex = cp.addConstructor(descName, this.rawClassName);
+			
 			MemberInfo cons = new MemberInfo();
 			cons.setAccessFlags(2);
-			cons.setName("<init>");
-			Class<?>[] params = superCon.getParameterTypes();
-	    	String[] paramDesces = new String[params.length];
-    		for(int i = 0; i < params.length; i++) {
-    			paramDesces[i] = DescriptorUtil.getClassDescription(params[i]);
-    		}
-			cons.setDesc(DescriptorUtil.getMethodDescription(paramDesces, "V"));
-			cons.setNameIndex(consNameIndex);
-			cons.setDescriptorIndex(consDescIndex);
-			
-			int maxStack = 1, maxLocals = 1;
+			cons.setNameIndex(cp.findName("<init>"));
+			cons.setDescriptorIndex(cp.findName(descName));
 
-//			CodeAttribute codeAttr = new CodeAttribute(cp.findName("Code"), );
-//			codeAttr.setMaxStack(1);
-//			codeAttr.setMaxLocals(1);
-//			codeAttr.setName("Code");
-//			codeAttr.setNameIndex(cp.findName("Code"));
-//			codeAttr.setLength(17);
-//			codeAttr.setMaxStack(1);
-//			codeAttr.setMaxLocals(1);
-//			codeAttr.setCode(new byte[] {42, -73, 0, (byte) constantPool.findMethod("<init>", "()V", "java/lang/Object"), -79});
+			AttributeInfo[] methodAttrs = new AttributeInfo[256];
+			int methodAttrOff = 0;
+
+			String[] argDescs = DescriptorUtil.methodDescToArgDescs(descName);
+			CodeAttributeWriter writer = CodeAttributeWriter.of(codeNameIndex)
+				.addInstruction("aload_0");
+			for(int j = 0; j < argDescs.length; j++) {
+				cp.addName(argDescs[j]);
+				writer.addCodes(InstructionTable.decodeLoadIns(argDescs[j], j));
+			}
+			writer.addInstruction16("invokespecial", consIndex);
+			writer.addInstruction("return");
 			
+			methodAttrs[methodAttrOff++] = writer.toCodeAttribute();
+			
+			int exIndex = 0;
+			for(AttributeInfo attr: methods[i].getAttributes()) {
+				if(attr instanceof ExceptionAttribute) {
+					if(exIndex == 0) {
+						exIndex = cp.addName("Exceptions");
+					}
+					ExceptionAttribute ex = (ExceptionAttribute) attr;
+					int classIndex = cp.findClass(newcls.getRawClassName());
+					ConstantClass excls = (ConstantClass) superConst[ex.getExceptionClassIndex()];
+					String exClsName = ((ConstantUtf8)superConst[excls.getNameIndex()]).getValue();
+					int exClassIndex = cp.addClass(exClsName);
+					
+					methodAttrs[methodAttrOff++] = new ExceptionAttribute(exIndex, classIndex, exClassIndex);
+				}
+			}
+			
+			cons.setAttributes(Arrays.copyOf(methodAttrs, methodAttrOff));
+			newmethods[newmethodOff++] = cons;
+        }
+		newcls.setMethods(Arrays.copyOf(newmethods, newmethodOff));
+		
+
+		int fileNameIndex = cp.findFileNameIndex();
+		if(fileNameIndex == 0) {
+			throw new BytecodeException("Invalid bytescode");
 		}
-		
-	
-		MemberInfo cons = new MemberInfo();
-		cons.setAccessFlags(1);
-		cons.setName("<init>");
-		cons.setDesc("()V");
-		cons.setNameIndex(consNameIndex);
-		cons.setDescriptorIndex(consDescIndex);
-		
-//		CodeAttribute codeAttr = new CodeAttribute();
-//		codeAttr.setName("Code");
-//		codeAttr.setNameIndex(cp.findName("Code"));
-//		codeAttr.setLength(17);
-//		codeAttr.setMaxStack(1);
-//		codeAttr.setMaxLocals(1);
-//		codeAttr.setCode(new byte[] {42, -73, (byte) ((superInitIndex >> 8) & 0xff), (byte) (superInitIndex & 0xff), -79});
-//		
-//		codeAttr.setException(new byte[0]);
-//		codeAttr.setAttributes(new AttributeInfo[0]);
-//		
-//		cons.setAttributes(new AttributeInfo[] {codeAttr});
-//		newcls.setMethods(new MemberInfo[] {cons});
-		
-		ClassEnd end = new ClassEnd();
-		end.setSourceLen(1);
-		end.setSourceIndex(sourceIndex);
-		end.setSourceNop(2);
-		end.setSourceNameIndex(sourceNameIndex);
-		
-		newcls.setClassEnd(end);
+		AttributeInfo[] attrs = new AttributeInfo[1];
+		attrs[0] = new SourceFileAttribute(cp.findSourceIndex(), fileNameIndex);
+		newcls.setAttributes(attrs);
 		
 		return newcls;
 	}
@@ -706,15 +709,6 @@ public class ClassBytecode {
 				int newIdx = constantPool.addName(newName);
 				methods[i].setNameIndex(newIdx);
 			}
-		}
-	}
-	
-	public void refreshClassEnd() {
-		int sourceIndex = constantPool.findSourceIndex();
-		classEnd.setSourceIndex(sourceIndex);
-		classEnd.setSourceNameIndex(sourceIndex + 1);
-		if(classEnd.getInnerClassRawNameIndex() > 0) {
-			classEnd.setInnerClassRawNameIndex(sourceIndex + 2);
 		}
 	}
 }

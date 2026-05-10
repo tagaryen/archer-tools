@@ -2,10 +2,8 @@ package com.archer.tools.bytecode;
 
 import java.util.Arrays;
 
-import com.archer.tools.bytecode.MemberInfo.AttributeInfo;
-import com.archer.tools.bytecode.MemberInfo.CodeAttribute;
-import com.archer.tools.bytecode.MemberInfo.LineNumAttribute;
-import com.archer.tools.bytecode.MemberInfo.LocalVarAttribute;
+import com.archer.tools.bytecode.AttributeInfo;
+import com.archer.tools.bytecode.AttributeInfo.*;
 import com.archer.tools.bytecode.constantpool.ConstantClass;
 import com.archer.tools.bytecode.constantpool.ConstantDouble;
 import com.archer.tools.bytecode.constantpool.ConstantFloat;
