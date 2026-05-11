@@ -1,5 +1,7 @@
 package com.archer.tools.bytecode;
 
+import java.util.Arrays;
+
 import com.archer.net.Bytes;
 import com.archer.tools.java.Pair;
 
@@ -138,35 +140,58 @@ public class AttributeInfo {
 		}
 		
 		public CodeAttributeWriter addInstruction(String instruction) {
+			if(ClassBytecode.debugMode()) {
+				System.out.println("  "+instruction);
+			}
 			code.writeInt8(InstructionTable.getInstructionCode(instruction));
 			return this;
 		}
 		
 		public CodeAttributeWriter addInstruction8(String instruction, int pos) {
+			if(ClassBytecode.debugMode()) {
+				System.out.println("  "+instruction + " " + pos);
+			}
 			code.writeInt8(InstructionTable.getInstructionCode(instruction));
 			code.writeInt8(pos);
 			return this;
 		}
 		
 		public CodeAttributeWriter addInstruction16(String instruction, int pos) {
+			if(ClassBytecode.debugMode()) {
+				System.out.println("  "+instruction + " " + ((pos >> 8)&0xff) +" " + (pos & 0xff));
+			}
 			code.writeInt8(InstructionTable.getInstructionCode(instruction));
 			code.writeInt16(pos);
 			return this;
 		}
 
 		public CodeAttributeWriter addInstruction24(String instruction, int pos) {
+			if(ClassBytecode.debugMode()) {
+				System.out.println("  "+instruction + " " +((pos >> 16)&0xff) +" " + ((pos >> 8)&0xff) +" " + (pos & 0xff));
+			}
 			code.writeInt8(InstructionTable.getInstructionCode(instruction));
 			code.writeInt24(pos);
 			return this;
 		}
 		
 		public CodeAttributeWriter addInstruction32(String instruction, int pos) {
+			if(ClassBytecode.debugMode()) {
+				System.out.println("  "+instruction + " " +((pos >> 24)&0xff) +" "+((pos >> 16)&0xff) +" " + ((pos >> 8)&0xff) +" " + (pos & 0xff));
+			}
 			code.writeInt8(InstructionTable.getInstructionCode(instruction));
 			code.writeInt32(pos);
 			return this;
 		}
 
 		public CodeAttributeWriter addInstructions(String instruction, byte[] opnums) {
+			if(ClassBytecode.debugMode()) {
+				System.out.print("  "+instruction);
+				for(byte b : opnums) {
+					int i = b;
+					System.out.print(" " + (i < 0 ? i + 256: i));
+				}
+				System.out.println();
+			}
 			code.writeInt8(InstructionTable.getInstructionCode(instruction));
 			code.write(opnums);
 			return this;
@@ -259,7 +284,6 @@ public class AttributeInfo {
 		}
 		
 		private void refreshInfo() {
-
 			Bytes data = new Bytes();
 			data.writeInt16(maxStack);
 			data.writeInt16(maxLocals);
@@ -273,13 +297,13 @@ public class AttributeInfo {
 	            data.writeInt16(e.handlerPc);
 	            data.writeInt16(e.catchType);
 			}
-
 			data.writeInt16(attributesCount);
 			for (int j = 0; j < attributesCount; j++) {
 				data.writeInt16(attributes[j].nameIndex);
 				data.writeInt32(attributes[j].length);
 				data.write(attributes[j].info);
 			}
+			setInfo(data.readAll());
 		}
 		
 		private void parse() {
@@ -291,6 +315,12 @@ public class AttributeInfo {
 			code = bytes.read(codeLength);  //length bytes
 			exceptionTableLength = bytes.readInt16();    // 2bytes
 			exceptionTable = new ExceptionTable[exceptionTableLength];
+
+			if(ClassBytecode.debugMode()) {
+				System.out.println("  Code:"+Arrays.toString(code));
+				System.out.println("  ExceptionTableLength:"+exceptionTableLength);
+			}
+			
 			for (int i = 0; i < exceptionTableLength; i++) {
 	            ExceptionTable e = new ExceptionTable();
 	            e.startPc = bytes.readInt16();
@@ -298,14 +328,28 @@ public class AttributeInfo {
 	            e.handlerPc = bytes.readInt16();
 	            e.catchType = bytes.readInt16();
 	            exceptionTable[i] = e;
+
+				if(ClassBytecode.debugMode()) {
+					System.out.println("  ExceptionTable:"+e.startPc+" "+e.endPc+" "+e.handlerPc+" "+e.catchType);
+				}
 	        }
 	        
 	        attributesCount = bytes.readInt16(); //2bytes
 	        attributes = new AttributeInfo[attributesCount];
+
+    		if(ClassBytecode.debugMode()) {
+				System.out.println("    AttributeCount: "+attributesCount);
+    		}
+    		
 			for (int j = 0; j < attributes.length; j++) {
 	    		int nameIndex = bytes.readInt16();
 	    		int length = bytes.readInt32();
 	            byte[] info = bytes.read(length);
+
+	    		if(ClassBytecode.debugMode()) {
+					System.out.println("    Attribute: name=#"+nameIndex+" -info="+Arrays.toString(info));
+	    		}
+	    		
 				AttributeInfo attr = new AttributeInfo(nameIndex, length, info);
 				attributes[j] = attr;
 			}
@@ -446,6 +490,14 @@ public class AttributeInfo {
             data.writeInt16(exceptionClassIndex);
             setInfo(data.readAll());
 		}
+	}
+	
+	public static class StackMapAttribute extends AttributeInfo {
+
+		public StackMapAttribute(int nameIdx, int len, byte[] data) {
+			super(nameIdx, len, data);
+		}
+		
 	}
 
 	

@@ -75,6 +75,9 @@ public class ByteCodeTest {
 	}
 	
 	public static void asyncTest() throws Exception {
+		
+		System.setProperty("archer.bytecode.debug", "true");
+		
 		AsyncProxy proxy = new AsyncProxy(new ClassBytecode(Parent.class));
 		Class<?> parentImpl = proxy.newAsyncClass();
 		Object implObj = ClassUtil.newInstance(parentImpl);
@@ -87,6 +90,10 @@ public class ByteCodeTest {
 		
 	}
 	
+	public static void printClassName(Object o) {
+		System.out.println(o.getClass().getName());
+	}
+	
 	public static void main(String args[]) {
 //		test();
 		
@@ -95,5 +102,11 @@ public class ByteCodeTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+//		int[] a = new int[] {1};
+//		int b = 1;
+//		printClassName(a);
+//		System.out.println(int.class.getName());
+//		printClassName(b);
 	}
 }

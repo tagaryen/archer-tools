@@ -13,6 +13,7 @@ import com.archer.tools.bytecode.constantpool.ConstantUtf8;
 
 
 public class MemberInfo {
+	private boolean isField;
     private int accessFlags;
     private int nameIndex;
     private int descriptorIndex;
@@ -24,7 +25,13 @@ public class MemberInfo {
     private String name;
     private String desc;
     
+    public MemberInfo(boolean isField) {
+    	this.isField = isField;
+    }
     
+    public boolean isField() {
+    	return isField;
+    }
     
     public int getAccessFlags() {
 		return accessFlags;
@@ -91,11 +98,22 @@ public class MemberInfo {
     	this.name = ((ConstantUtf8) cpInfo[nameIndex]).getValue();
     	this.desc = ((ConstantUtf8) cpInfo[descriptorIndex]).getValue();
     	
+		if(ClassBytecode.debugMode()) {
+			if(isField) {
+				System.out.println("Field: "+this.name+":"+this.desc);
+			} else {
+				System.out.println("Method: "+this.name+this.desc);
+			}
+		}
+    	
 		for (int j = 0; j < attributes.length; j++) {
     		int nameIndex = bytes.readInt16();
     		int length = bytes.readInt32();
             byte[] info = bytes.read(length);
     		String name = ((ConstantUtf8) cpInfo[nameIndex]).getValue();
+    		if(ClassBytecode.debugMode()) {
+				System.out.println("  Attribute: "+name);
+    		}
     		AttributeInfo attr;
     		if("Code".equals(name)) {
     			attr = new CodeAttribute(nameIndex, length, info);

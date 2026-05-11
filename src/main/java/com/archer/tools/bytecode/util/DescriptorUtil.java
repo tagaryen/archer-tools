@@ -26,30 +26,61 @@ public class DescriptorUtil {
 	static final String DOUBLE_ARR = "[D";
 	
 	public static String getClassDescription(Class<?> cls) {
-		if(BOOL_TYPE.equals(cls.getName())) {
+		return getClassDescription(cls.getName());
+	}
+	
+	public static String getClassDescription(String clsName) {
+		if(BOOL_TYPE.equals(clsName)) {
 			return "Z";
-		} else if(BYTE_TYPE.equals(cls.getName())) {
+		} else if(BYTE_TYPE.equals(clsName)) {
 			return "B";
-		} else if(CHAR_TYPE.equals(cls.getName())) {
+		} else if(CHAR_TYPE.equals(clsName)) {
 			return "C";
-		} else if(SHORT_TYPE.equals(cls.getName())) {
+		} else if(SHORT_TYPE.equals(clsName)) {
 			return "S";
-		} else if(INT_TYPE.equals(cls.getName())) {
+		} else if(INT_TYPE.equals(clsName)) {
 			return "I";
-		} else if(LONG_TYPE.equals(cls.getName())) {
+		} else if(LONG_TYPE.equals(clsName)) {
 			return "J";
-		} else if(FLOAT_TYPE.equals(cls.getName())) {
+		} else if(FLOAT_TYPE.equals(clsName)) {
 			return "F";
-		} else if(DOUBLE_TYPE.equals(cls.getName())) {
+		} else if(DOUBLE_TYPE.equals(clsName)) {
 			return "D";
-		} else if(VOID_TYPE.equals(cls.getName())) {
+		} else if(VOID_TYPE.equals(clsName)) {
 			return "V";
-		} else if(cls.isArray()) {
-			return cls.getName();
+		} else if(BOOL_ARR.equals(clsName)) {
+			return "[Z";
+		} else if(BYTE_ARR.equals(clsName)) {
+			return "[B";
+		} else if(CHAR_ARR.equals(clsName)) {
+			return "[C";
+		} else if(SHORT_ARR.equals(clsName)) {
+			return "[S";
+		} else if(INT_ARR.equals(clsName)) {
+			return "[I";
+		} else if(LONG_ARR.equals(clsName)) {
+			return "[J";
+		} else if(FLOAT_ARR.equals(clsName)) {
+			return "[F";
+		} else if(DOUBLE_ARR.equals(clsName)) {
+			return "[D";
+		} else if(clsName.charAt(0) == '[') {
+			return "[L" + clsName.substring(1) + ";";
 		} else {
-			return "L"+replaceDot2Slash(cls.getName())+";";
+			return "L"+replaceDot2Slash(clsName)+";";
 		}
 	}
+	
+	public static String getDescriptionClassName(String desc) {
+		if(desc.charAt(0) == 'L') {
+			return desc.substring(1, desc.length()-1);
+		}
+		if(desc.length() > 2 && desc.charAt(0) == '[' && desc.charAt(0) == 'L') {
+			return '[' + desc.substring(2, desc.length()-1);
+		}
+		return desc;
+	}
+	
 	
 	public static String getMethodDescription(Class<?>[] params, Class<?> returnType) {
 		String[] paramDescs = new String[params==null?0:params.length];

@@ -6,6 +6,8 @@ public class ParentImplTask implements AsyncTask {
 
 	public String p1;
 	
+	public ParentImplTask() {}
+	
 	public ParentImplTask(ParentImpl p0, String p1) {
 		super();
 		this.p0 = p0;

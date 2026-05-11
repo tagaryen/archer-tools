@@ -20,6 +20,10 @@ import com.archer.tools.java.Pair;
 
 public class ClassBytecode {
 	
+
+	private static String debug = null;
+	private static boolean debugMode = false;
+	
 	private static BytecodeClassLoader loader = new BytecodeClassLoader();
 	public	static int	ACC_PRIVATE =	0x0002;
 	public	static int	ACC_PUBLIC =	0x0001;
@@ -287,7 +291,7 @@ public class ClassBytecode {
         this.fieldCount = bytes.readInt16();
         MemberInfo[] fields = new MemberInfo[fieldCount];
         for (int i = 0; i < fieldCount; i++) {
-        	fields[i] = new MemberInfo();
+        	fields[i] = new MemberInfo(true);
         	fields[i].read(bytes, constantPool);
         }
         this.fields = fields;
@@ -296,7 +300,7 @@ public class ClassBytecode {
         this.methodCount = bytes.readInt16();
         MemberInfo[] methods = new MemberInfo[methodCount];
         for (int i = 0; i < methodCount; i++) {
-        	methods[i] = new MemberInfo();
+        	methods[i] = new MemberInfo(false);
         	methods[i].read(bytes, constantPool);
         }
         this.methods = methods;
@@ -475,7 +479,7 @@ public class ClassBytecode {
 		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
 		setConstantPool(cp);
 
-		MemberInfo cons = new MemberInfo();
+		MemberInfo cons = new MemberInfo(false);
 		cons.setAccessFlags(ACC_PUBLIC);
 		cons.setNameIndex(consNameIndex);
 		cons.setDescriptorIndex(consDescIndex);
@@ -598,7 +602,10 @@ public class ClassBytecode {
 		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
 		setConstantPool(cp);
 
-		MemberInfo cons = new MemberInfo();
+		if(debugMode()) {
+			System.out.println("Method "+this.rawClassName+".<init>()V Code:");
+		}
+		MemberInfo cons = new MemberInfo(false);
 		cons.setAccessFlags(ACC_PUBLIC);
 		cons.setNameIndex(consNameIndex);
 		cons.setDescriptorIndex(consDescIndex);
@@ -708,7 +715,7 @@ public class ClassBytecode {
         	
 			int consIndex = cp.addConstructor(descName, this.rawClassName);
 			
-			MemberInfo cons = new MemberInfo();
+			MemberInfo cons = new MemberInfo(false);
 			cons.setAccessFlags(ACC_PUBLIC);
 			cons.setNameIndex(cp.findName("<init>"));
 			cons.setDescriptorIndex(cp.findName(descName));
@@ -765,20 +772,28 @@ public class ClassBytecode {
 	}
 	
 	public int findField(String name) {
-		return constantPool.findField(name, this.rawClassName);
+		for(MemberInfo f: fields) {
+			String fName = ((ConstantUtf8)constantPool.getCpInfo()[f.getNameIndex()]).getValue();
+			if(fName.equals(name)) {
+				String desc = ((ConstantUtf8)constantPool.getCpInfo()[f.getDescriptorIndex()]).getValue();
+				return constantPool.findField(name, desc);
+			}
+		}
+		return 0;
 	}
 	
 	public int addField(String name, Class<?> type, int accessFlag) {
-		return addField(name, DescriptorUtil.getClassDescription(type), accessFlag);
+		return addField(name, DescriptorUtil.replaceDot2Slash(type.getName()), accessFlag);
 	}
 	
-	public int addField(String name, String typeDesc, int accessFlag) {
+	public int addField(String name, String type, int accessFlag) {
+		String typeDesc = DescriptorUtil.getClassDescription(type);
 		int fieldIndex = constantPool.addField(name, typeDesc);
 		ConstantMemberRef field = (ConstantMemberRef) constantPool.getCpInfo()[fieldIndex];
 		ConstantNameAndType nameType = (ConstantNameAndType) constantPool.getCpInfo()[field.getNameAndTypeIndex()];
 		MemberInfo[] newFields = new MemberInfo[fields.length + 1];
 		System.arraycopy(fields, 0, newFields, 0, fields.length);
-		MemberInfo newField = new MemberInfo();
+		MemberInfo newField = new MemberInfo(true);
 		newField.setAccessFlags(accessFlag);
 		newField.setName(name);
 		newField.setDesc(typeDesc);
@@ -807,7 +822,7 @@ public class ClassBytecode {
     	int descIndex = constantPool.addName(desc);
 		MemberInfo[] newMethods = new MemberInfo[methods.length + 1];
 		System.arraycopy(methods, 0, newMethods, 0, methods.length);
-		MemberInfo method = new MemberInfo();
+		MemberInfo method = new MemberInfo(false);
 		method.setAccessFlags(1);
 		method.setName("<init>");
 		method.setDesc(desc);
@@ -848,7 +863,7 @@ public class ClassBytecode {
     	int descIndex = constantPool.addName(desc);
 		MemberInfo[] newMethods = new MemberInfo[methods.length + 1];
 		System.arraycopy(methods, 0, newMethods, 0, methods.length);
-		MemberInfo method = new MemberInfo();
+		MemberInfo method = new MemberInfo(false);
 		method.setAccessFlags(1);
 		method.setName(name);
 		method.setDesc(desc);
@@ -955,5 +970,15 @@ public class ClassBytecode {
 		} else {
 			return DescriptorUtil.replaceDot2Slash(pkg) + '/' + className;
 		}
+	}
+	
+	public static boolean debugMode() {
+		if(debug == null) {
+			debug = System.getProperty("archer.bytecode.debug", "false");
+			try {
+				debugMode = Boolean.valueOf(debug);
+			} catch(Exception ignore) {}
+		}
+		return debugMode;
 	}
 }

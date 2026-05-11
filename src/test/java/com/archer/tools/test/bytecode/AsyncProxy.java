@@ -1,5 +1,8 @@
 package com.archer.tools.test.bytecode;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import com.archer.tools.bytecode.ClassBytecode;
 import com.archer.tools.bytecode.MemberInfo;
@@ -57,12 +60,23 @@ public class AsyncProxy {
 					String name = taskClassSimpleName + (off + 1);
 					overrideMethodNames[off] = m.getName();
 					overrideMethodDescs[off] = m.getDesc();
-					generateAsyncTask(name, pkg, m.getName(), m.getDesc()).loadSelfClass();
+					ClassBytecode taskClassBytecode = generateAsyncTask(name, pkg, m.getName(), m.getDesc());
+					try {
+						Files.write(Paths.get("D:/task.class"), taskClassBytecode.encodeClassBytes().readAll());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					taskClassBytecode.loadSelfClass();
 					off++;
 				}
 			}
 		}
 		ClassBytecode newClassByteCode = generateAsyncClassCode(pkg, Arrays.copyOfRange(overrideMethodNames, 0, off), Arrays.copyOfRange(overrideMethodDescs, 0, off));
+		try {
+			Files.write(Paths.get("D:/impl.class"), newClassByteCode.encodeClassBytes().readAll());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return newClassByteCode.loadSelfClass();
 	}
 
@@ -72,7 +86,7 @@ public class AsyncProxy {
 		
 		String[] args = DescriptorUtil.methodDescToArgDescs(methodDesc);
 		String[] consArgs = new String[args.length + 1];
-		consArgs[0] = "L" + this.rawTaskClassName + ";";
+		consArgs[0] = "L" + this.rawClassName + ";";
 		System.arraycopy(args, 0, consArgs, 1, args.length);
 		
 		ClassBytecode newcls = new ClassBytecode();
@@ -81,7 +95,8 @@ public class AsyncProxy {
 		int objInitIndex = cp.addMethod("<init>", "()V", "java/lang/Object");
 		int methodIndex = cp.addMethod(proxyMethodName, methodDesc, this.rawClassName);
 		
-		
+
+		System.out.println("Method - <init> Code start");
 		/**
 		 * add constructor <init>(consArgs)V
 		 * */
@@ -90,28 +105,34 @@ public class AsyncProxy {
 			.addInstruction16("invokespecial", objInitIndex);
 		int slot = 1;
 		for(int j = 0; j < consArgs.length; j++) {
-			int fieldIndex = newcls.addField("p"+j, consArgs[j], ClassBytecode.ACC_PUBLIC);
+			int fieldIndex = newcls.addField("p"+j, DescriptorUtil.getDescriptionClassName(consArgs[j]), ClassBytecode.ACC_PUBLIC);
 			writer.addInstruction("aload_0");
 			slot = loadParamCode(writer, consArgs[j], slot);
 			writer.addInstruction16("putfield",fieldIndex);
 		}
 		writer.addInstruction("return");
+
+		System.out.println("Method - <init> Code end");
+		
 		newcls.addConstructor(consArgs, writer.toCodeAttribute());
 		
 
+		System.out.println("Method - run Code start");
 		/**
 		 * add method run()V { impl.super$method(); }
 		 */
 		CodeAttributeWriter runWriter = CodeAttributeWriter.of(cp.findName("Code"));
-		runWriter.addInstruction("aload_0");
-		for(int j = 0; j < args.length; j++) {
-			int fieldIndex = newcls.findField("p" + (j+1));
+		for(int j = 0; j < consArgs.length; j++) {
+			int fieldIndex = newcls.findField("p" + j);
 			runWriter.addInstruction("aload_0")
 				.addInstruction16("getfield", fieldIndex);
 		}
 		runWriter.addInstruction16("invokevirtual", methodIndex)
 			.addInstruction("return");
-		newcls.addMethod("run", args, "V", writer.toCodeAttribute());
+
+		System.out.println("Method - run Code end");
+		
+		newcls.addMethod("run", args, "V", runWriter.toCodeAttribute());
 		
 		return newcls;
 	}
@@ -129,17 +150,22 @@ public class AsyncProxy {
 		int poolFieldIndex = newcls.addField("pool", AsyncPool.class, ClassBytecode.ACC_PUBLIC);
 		
 		//add invoke method impl.pool.submit(implTask)
-		int submitIndex = cp.addMethod("submit", "(" + DescriptorUtil.replaceDot2Slash(AsyncTask.class.getName()) + ")V", DescriptorUtil.replaceDot2Slash(AsyncPool.class.getName()));
+		int submitIndex = cp.addMethod("submit", "(" + DescriptorUtil.getClassDescription(AsyncTask.class) + ")V", DescriptorUtil.replaceDot2Slash(AsyncPool.class.getName()));
 		
 		for(int i = 0; i < overrideMethods.length; i++) {
 			
 			String methodName =  overrideMethods[i], methodDesc = overrideMethodDescs[i];
 			String proxyMethodName = "super$"+methodName;
+
+			String taskRawClassName = DescriptorUtil.replaceDot2Slash(taskClassName + (i + 1));
+			cp.addClass(taskRawClassName);
+			
 			/**
 			 * add method impl.super$methodName(args)V {try{super.methodName();}catch(Exception e){e.printStackTrace();}}
 			 * */
 			int superMethodIndex = cp.addMethod(methodName, methodDesc, this.superRawClassName);
 			int exMethodIndex = cp.addMethod("printStackTrace", "()V", "java/lang/Exception");
+			int stackMapIndex = cp.addName("StackMapTable");
 			CodeAttributeWriter writer = CodeAttributeWriter.of(cp.findName("Code"));
 			writer.addInstruction("aload_0");
 			
@@ -151,7 +177,7 @@ public class AsyncProxy {
 			}
 			writer.addInstruction16("invokespecial", superMethodIndex);
 			exEnd = writer.currentPc();
-			writer.addInstruction16("goto", writer.currentPc() + 8);
+			writer.addInstruction16("goto", 8);
 			exTarget = writer.currentPc();
 			if(slot > 3) {
 				writer.addInstruction8("astore", slot);
@@ -169,6 +195,7 @@ public class AsyncProxy {
 			
 			CodeAttribute codeAttr = writer.toCodeAttribute();
 			codeAttr.setExceptionTable(new ExceptionTable[] {new ExceptionTable(exStart, exEnd, exTarget, exType)});
+			StackMapAttribute stackMap = new StackMapAttribute();
 			
 			newcls.addMethod(proxyMethodName, args, "V", codeAttr);
 			
@@ -178,13 +205,13 @@ public class AsyncProxy {
 			 * */
 
 			String[] taskInitArgs = new String[args.length + 1];
-			taskInitArgs[0] = "L" + this.rawTaskClassName + ";";
+			taskInitArgs[0] = "L" + this.rawClassName + ";";
 			System.arraycopy(args, 0, taskInitArgs, 1, args.length);
 			// add invoke new implTask(this, args);
-			int taskMethodIndex = cp.addMethod("<init>", DescriptorUtil.getMethodDescription(taskInitArgs, "V"), this.rawTaskClassName);
+			int taskMethodIndex = cp.addMethod("<init>", DescriptorUtil.getMethodDescription(taskInitArgs, "V"), taskRawClassName);
 			
 			CodeAttributeWriter overrideWriter = CodeAttributeWriter.of(cp.findName("Code"));
-			overrideWriter.addInstruction("new")
+			overrideWriter.addInstruction16("new", cp.findClass(taskRawClassName))
 				.addInstruction("dup")
 				.addInstruction("aload_0");
 			slot = 1;
