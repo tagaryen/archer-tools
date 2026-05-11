@@ -23,10 +23,18 @@ package com.archer.tools.test.bytecode;
 
 public class ClassAImpl extends ClassA {
 	
-	public String nameCp;
+	AsyncPool pool;
 	
 	public void setName(String name, int age) {
-		this.nameCp = name;
-		super.setName(null, age);
+		ClassAImplTask task = new ClassAImplTask(this, name, age);
+		pool.submit(task);
+	}
+	
+	public void setNameTask(String name, int age) {
+		try {
+			super.setName(name, age);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

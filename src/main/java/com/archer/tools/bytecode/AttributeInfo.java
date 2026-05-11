@@ -1,6 +1,7 @@
 package com.archer.tools.bytecode;
 
 import com.archer.net.Bytes;
+import com.archer.tools.java.Pair;
 
 public class AttributeInfo {
    
@@ -43,6 +44,15 @@ public class AttributeInfo {
 
 		int startPc, endPc, handlerPc, catchType;
 	
+		public ExceptionTable() {}
+
+		public ExceptionTable(int startPc, int endPc, int handlerPc, int catchType) {
+			this.startPc = startPc;
+			this.endPc = endPc;
+			this.handlerPc = handlerPc;
+			this.catchType = catchType;
+		}
+
 		public int getStartPc() {
 			return startPc;
 		}
@@ -79,7 +89,6 @@ public class AttributeInfo {
 	public static class CodeAttributeWriter {
 		int nameIndex;
 		Bytes code = new Bytes();
-		private int maxStack, maxLocals;
 		
 		private CodeAttributeWriter(int nameIndex) {
 			this.nameIndex = nameIndex;
@@ -89,16 +98,12 @@ public class AttributeInfo {
 			return new CodeAttributeWriter(nameIndex);
 		}
 		
-//		public CodeAttributeWriter addStackAndLocals(int maxStack, int maxLocals) {
-//			this.maxStack = maxStack;
-//			this.maxLocals = maxLocals;
-//			return this;
-//		}
+		public int currentPc() {
+			return code.available();
+		}
 		
 		public CodeAttributeWriter addInstruction(int instructionCode) {
 			code.writeInt8(instructionCode);
-			maxStack++;
-			maxLocals++;
 			return this;
 		}
 		
@@ -111,6 +116,24 @@ public class AttributeInfo {
 		public CodeAttributeWriter addInstruction16(int instructionCode, int pos) {
 			code.writeInt8(instructionCode);
 			code.writeInt16(pos);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction24(int instructionCode, int pos) {
+			code.writeInt8(instructionCode);
+			code.writeInt24(pos);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction32(int instructionCode, int pos) {
+			code.writeInt8(instructionCode);
+			code.writeInt32(pos);
+			return this;
+		}
+
+		public CodeAttributeWriter addInstructions(int instructionCode, byte[] opnums) {
+			code.writeInt8(instructionCode);
+			code.write(opnums);
 			return this;
 		}
 		
@@ -130,17 +153,43 @@ public class AttributeInfo {
 			code.writeInt16(pos);
 			return this;
 		}
+
+		public CodeAttributeWriter addInstruction24(String instruction, int pos) {
+			code.writeInt8(InstructionTable.getInstructionCode(instruction));
+			code.writeInt24(pos);
+			return this;
+		}
+		
+		public CodeAttributeWriter addInstruction32(String instruction, int pos) {
+			code.writeInt8(InstructionTable.getInstructionCode(instruction));
+			code.writeInt32(pos);
+			return this;
+		}
+
+		public CodeAttributeWriter addInstructions(String instruction, byte[] opnums) {
+			code.writeInt8(InstructionTable.getInstructionCode(instruction));
+			code.write(opnums);
+			return this;
+		}
+		
+		public CodeAttributeWriter append(byte opcode) {
+			int c = (int) opcode;
+			code.writeInt8(c < 0 ? (c + 256) : c);
+			return this;
+		}
 		public CodeAttributeWriter addCodes(byte[] codes) {
 			code.write(codes);
 			return this;
 		}
 		
 		public CodeAttribute toCodeAttribute() {
+			byte [] codeBytes = code.readAll();
+			Pair<Integer, Integer> maxs = InstructionTable.calculateMaxs(codeBytes);
 			Bytes data = new Bytes();
-			data.writeInt16(maxStack);
-			data.writeInt16(maxLocals);
-			data.writeInt32(code.available());
-			data.readFromBytes(code);
+			data.writeInt16(maxs.getFirst());
+			data.writeInt16(maxs.getSecond());
+			data.writeInt32(codeBytes.length);
+			data.write(codeBytes);
 			data.writeInt16(0);// 0 exceptions
 			data.writeInt16(0);// 0 attributes
 			return new CodeAttribute(nameIndex, data.available(), data.readAll());
@@ -240,9 +289,6 @@ public class AttributeInfo {
 			maxLocals = bytes.readInt16(); //2bytes
 			codeLength = bytes.readInt32();   //4bytes
 			code = bytes.read(codeLength);  //length bytes
-			
-			System.out.println("maxStack="+maxStack+"; maxLocals="+maxLocals);
-			
 			exceptionTableLength = bytes.readInt16();    // 2bytes
 			exceptionTable = new ExceptionTable[exceptionTableLength];
 			for (int i = 0; i < exceptionTableLength; i++) {
@@ -392,7 +438,6 @@ public class AttributeInfo {
 			Bytes bytes = new Bytes(info);
 			classIndex = bytes.readInt16();
 			exceptionClassIndex = bytes.readInt16();
-			System.out.println("exceptions classIndex="+classIndex +"; exceptionClassIndex="+exceptionClassIndex);
 		}
 		
 		private void refreshInfo() {

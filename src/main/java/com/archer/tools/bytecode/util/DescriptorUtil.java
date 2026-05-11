@@ -51,16 +51,26 @@ public class DescriptorUtil {
 		}
 	}
 	
-	public static String getMethodDescription(Class<?>[] params, Class<?> cls) {
+	public static String getMethodDescription(Class<?>[] params, Class<?> returnType) {
+		String[] paramDescs = new String[params==null?0:params.length];
+		if(paramDescs != null) {
+			for(int i = 0; i < paramDescs.length; i++) {
+				paramDescs[i] = getClassDescription(params[i]);
+			}
+		}
+		return getMethodDescription(paramDescs, getClassDescription(returnType));
+	}
+	
+	public static String getMethodDescription(String[] paramDescs, String returnDesc) {
 		String out = "(";
-		if(params != null) {
-			for(int i = 0; i < params.length; i++) {
-				out += getClassDescription(params[i]);
+		if(paramDescs != null) {
+			for(int i = 0; i < paramDescs.length; i++) {
+				out += paramDescs[i];
 			}
 		}
 		out += ")"; 
-		if(cls != null) {
-			out += getClassDescription(cls);
+		if(returnDesc != null) {
+			out += returnDesc;
 		} else {
 			out += "V";
 		}
@@ -78,21 +88,16 @@ public class DescriptorUtil {
     	return name.substring(idx + 1);
     }
     
-	public static String getMethodDescription(String[] paramDesces, String returnDesc) {
-		String out = "(";
-		if(paramDesces != null) {
-			for(int i = 0; i < paramDesces.length; i++) {
-				out += paramDesces[i];
-			}
-		}
-		out += ")"; 
-		if(returnDesc != null) {
-			out += returnDesc;
-		} else {
-			out += "V";
-		}
-		return out;
-	}
+    public static String getPackageName(String name) {
+    	int idx = name.lastIndexOf('/');
+    	if(idx < 0) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	if(idx >= name.length()) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	return name.substring(0, idx);
+    }
 
     public static String replaceDot2Slash(String name) {
     	byte[] bs = name.getBytes();

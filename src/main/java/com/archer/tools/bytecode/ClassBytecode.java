@@ -15,11 +15,15 @@ import com.archer.tools.bytecode.constantpool.ConstantNameAndType;
 import com.archer.tools.bytecode.constantpool.ConstantPool;
 import com.archer.tools.bytecode.constantpool.ConstantUtf8;
 import com.archer.tools.bytecode.util.DescriptorUtil;
+import com.archer.tools.java.Pair;
 
 
 public class ClassBytecode {
 	
 	private static BytecodeClassLoader loader = new BytecodeClassLoader();
+	public	static int	ACC_PRIVATE =	0x0002;
+	public	static int	ACC_PUBLIC =	0x0001;
+	public	static int	ACC_PROTECTED =	0x0004;
 	
 	private int magic;
     private int minorVersion;
@@ -380,22 +384,11 @@ public class ClassBytecode {
 	}
 	
 
-	public void empty(String className, String pkg) {
-		this.simpleName = className;
-		if(pkg.indexOf('.') == -1 && pkg.indexOf('/') == -1) {
-			this.className = pkg + '.' + className;
-			this.rawClassName = pkg + '/' + className;
-		} else if(pkg.indexOf('.') == -1) {
-			this.className = DescriptorUtil.replaceSlash2Dot(pkg) + '.' + className;
-			this.rawClassName = pkg + '/' + className;
-		} else if(pkg.indexOf('/') == -1) {
-			this.className = pkg + '.' + className;
-			this.rawClassName = DescriptorUtil.replaceDot2Slash(pkg) + '/' + className;
-		}
-		
+	public void toEmptyClass(String name, String pkg) {
 		setMagic(-889275714);
 		setMinorVersion(0);
 		setMajorVersion(52);
+		setClassName(getFullClassName(name, pkg));
 		setAccessFlag(1);
 		setClassIndex(1);
 		setSuperIndex(3);
@@ -483,7 +476,130 @@ public class ClassBytecode {
 		setConstantPool(cp);
 
 		MemberInfo cons = new MemberInfo();
-		cons.setAccessFlags(1);
+		cons.setAccessFlags(ACC_PUBLIC);
+		cons.setNameIndex(consNameIndex);
+		cons.setDescriptorIndex(consDescIndex);
+		CodeAttribute codeAttr = CodeAttributeWriter.of(codeIndex)
+			.addInstruction("aload_0")
+			.addInstruction16("invokespecial", consMethodIndex)
+			.addInstruction("return").toCodeAttribute();
+		cons.setAttributes(new AttributeInfo[] {codeAttr});
+		setMethods(new MemberInfo[] {cons});
+		
+		AttributeInfo[] attrs = new AttributeInfo[1];
+		attrs[0] = new SourceFileAttribute(sourceIndex, fileNameIndex);
+		setAttributes(attrs);
+	}
+
+	public void toEmptyImplClass(String name, String pkg, Class<?> parentClass) {
+		toEmptyImplClass(name, pkg, DescriptorUtil.replaceDot2Slash(parentClass.getName()), parentClass.isInterface());
+	}
+
+	public void toEmptyImplClass(String name, String pkg, String parentClassName, boolean parentIsInterface) {
+		if(parentClassName.indexOf('/') < 0) {
+			throw new IllegalArgumentException("invalid parentClassName '" + parentClassName + "'");
+		}
+		
+		setMagic(-889275714);
+		setMinorVersion(0);
+		setMajorVersion(52);
+		setClassName(getFullClassName(name, pkg));
+		setAccessFlag(1);
+		setClassIndex(1);
+		setSuperIndex(3);
+		setInterfaceCount(0);
+		setInterfaceIndexArr(new int[0]);
+
+		int index = 1;
+		ConstantInfo[] constants = new ConstantInfo[65536];
+		
+		ConstantClass clazzInfo = new ConstantClass();
+		clazzInfo.setNameIndex(2);
+		constants[index++] = clazzInfo;
+		
+		ConstantUtf8 clazzUtf8Info = new ConstantUtf8();
+		clazzUtf8Info.setValue(rawClassName);
+		constants[index++] = clazzUtf8Info;
+		
+		if(parentIsInterface) {
+			ConstantClass superInfo = new ConstantClass();
+			superInfo.setNameIndex(4);
+			constants[index++] = superInfo;
+			
+			ConstantUtf8 superUtf8Info = new ConstantUtf8();
+			superUtf8Info.setValue("java/lang/Object");
+			constants[index++] = superUtf8Info;
+		}
+		ConstantClass superInfo = new ConstantClass();
+		superInfo.setNameIndex(index + 1);
+		constants[index++] = superInfo;
+		
+		ConstantUtf8 superUtf8Info = new ConstantUtf8();
+		superUtf8Info.setValue(parentClassName);
+		constants[index++] = superUtf8Info;
+
+		int codeIndex = index;
+		ConstantUtf8 mcode = new ConstantUtf8();
+		mcode.setValue("Code");
+		constants[index++] = mcode;
+
+		ConstantUtf8 lnt = new ConstantUtf8();
+		lnt.setValue("LineNumberTable");
+		constants[index++] = lnt;
+
+		ConstantUtf8 lvt = new ConstantUtf8();
+		lvt.setValue("LocalVariableTable");
+		constants[index++] = lvt;
+		
+
+		ConstantUtf8 thi = new ConstantUtf8();
+		thi.setValue("this");
+		constants[index++] = thi;
+		
+		String classTypeName = "L"+rawClassName + ";";
+		ConstantUtf8 thiType = new ConstantUtf8();
+		thiType.setValue(classTypeName);
+		constants[index++] = thiType;
+		
+		int consNameIndex = index;
+		ConstantUtf8 consName = new ConstantUtf8();
+		consName.setValue("<init>");
+		constants[index++] = consName;
+		
+
+		int consDescIndex = index;
+		ConstantUtf8 consDesc = new ConstantUtf8();
+		consDesc.setValue("()V");
+		constants[index++] = consDesc;
+		
+		int consMethodIndex = index;
+		ConstantMemberRef consMethod = new ConstantMemberRef(ConstantInfo.CONSTANT_Methodref);
+		consMethod.setClassIndex(3);
+		consMethod.setNameAndTypeIndex(index + 1);
+		constants[index++] = consMethod;
+		
+		ConstantNameAndType consNameType = new ConstantNameAndType();
+		consNameType.setNameIndex(consNameIndex);
+		consNameType.setDescIndex(consDescIndex);
+		constants[index++] = consNameType;
+		
+
+		int sourceIndex = index;
+		ConstantUtf8 source = new ConstantUtf8();
+		source.setValue("SourceFile");
+		constants[index++] = source;
+
+		int fileNameIndex = index;
+		ConstantUtf8 sourceName = new ConstantUtf8();
+		sourceName.setValue(simpleName+".java");
+		constants[index++] = sourceName;
+		
+		ConstantPool cp = new ConstantPool();
+		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
+		setConstantPool(cp);
+
+		MemberInfo cons = new MemberInfo();
+		cons.setAccessFlags(ACC_PUBLIC);
 		cons.setNameIndex(consNameIndex);
 		cons.setDescriptorIndex(consDescIndex);
 		CodeAttribute codeAttr = CodeAttributeWriter.of(codeIndex)
@@ -499,9 +615,9 @@ public class ClassBytecode {
 	}
 
 	
-	public ClassBytecode generateImplClass(String name) {
+	public ClassBytecode generateImplClass(String name, String pkg) {
 		ClassBytecode newcls = new ClassBytecode();
-		newcls.setClassName(name);
+		newcls.setClassName(getFullClassName(name, pkg));
 		newcls.setMagic(getMagic());
 		newcls.setMinorVersion(getMinorVersion());
 		newcls.setMajorVersion(getMajorVersion());
@@ -593,7 +709,7 @@ public class ClassBytecode {
 			int consIndex = cp.addConstructor(descName, this.rawClassName);
 			
 			MemberInfo cons = new MemberInfo();
-			cons.setAccessFlags(2);
+			cons.setAccessFlags(ACC_PUBLIC);
 			cons.setNameIndex(cp.findName("<init>"));
 			cons.setDescriptorIndex(cp.findName(descName));
 
@@ -603,13 +719,16 @@ public class ClassBytecode {
 			String[] argDescs = DescriptorUtil.methodDescToArgDescs(descName);
 			CodeAttributeWriter writer = CodeAttributeWriter.of(codeNameIndex)
 				.addInstruction("aload_0");
+			int slot = 1;
 			for(int j = 0; j < argDescs.length; j++) {
 				cp.addName(argDescs[j]);
-				writer.addCodes(InstructionTable.decodeLoadIns(argDescs[j], j));
+				Pair<byte[], Integer> pair = implConstructorCodes(argDescs[j], slot);
+				slot += pair.getSecond();
+				writer.addCodes(pair.getFirst());
 			}
 			writer.addInstruction16("invokespecial", consIndex);
 			writer.addInstruction("return");
-			
+
 			methodAttrs[methodAttrOff++] = writer.toCodeAttribute();
 			
 			int exIndex = 0;
@@ -645,11 +764,15 @@ public class ClassBytecode {
 		return newcls;
 	}
 	
-	public void addField(String name, Class<?> type, int accessFlag) {
-		addField(name, DescriptorUtil.getClassDescription(type), accessFlag);
+	public int findField(String name) {
+		return constantPool.findField(name, this.rawClassName);
 	}
 	
-	public void addField(String name, String typeDesc, int accessFlag) {
+	public int addField(String name, Class<?> type, int accessFlag) {
+		return addField(name, DescriptorUtil.getClassDescription(type), accessFlag);
+	}
+	
+	public int addField(String name, String typeDesc, int accessFlag) {
 		int fieldIndex = constantPool.addField(name, typeDesc);
 		ConstantMemberRef field = (ConstantMemberRef) constantPool.getCpInfo()[fieldIndex];
 		ConstantNameAndType nameType = (ConstantNameAndType) constantPool.getCpInfo()[field.getNameAndTypeIndex()];
@@ -664,9 +787,47 @@ public class ClassBytecode {
 		newField.setAttributes(new AttributeInfo[0]);
 		newFields[newFields.length - 1] = newField;
 		setFields(newFields);
+		return fieldIndex;
 	}
 	
-	public void addMethod(String name, Class<?>[] params, Class<?> returnType, CodeAttribute codeAttr) {
+	public void addConstructor(Class<?>[] params, CodeAttribute codeAttr, ExceptionAttribute... exAttrs) {
+    	String[] paramDesces = null;
+    	if(params != null) {
+    		paramDesces = new String[params.length];
+    		for(int i = 0; i < params.length; i++) {
+    			paramDesces[i] = DescriptorUtil.getClassDescription(params[i]);
+    		}
+    	}
+    	addConstructor(paramDesces, codeAttr, exAttrs);
+	}
+	
+	public void addConstructor(String[] paramDesces, CodeAttribute codeAttr, ExceptionAttribute... exAttrs) {
+    	String desc = DescriptorUtil.getMethodDescription(paramDesces, "V");
+    	int nameIndex = constantPool.addName("<init>");
+    	int descIndex = constantPool.addName(desc);
+		MemberInfo[] newMethods = new MemberInfo[methods.length + 1];
+		System.arraycopy(methods, 0, newMethods, 0, methods.length);
+		MemberInfo method = new MemberInfo();
+		method.setAccessFlags(1);
+		method.setName("<init>");
+		method.setDesc(desc);
+		method.setNameIndex(nameIndex);
+		method.setDescriptorIndex(descIndex);
+		if(exAttrs.length == 0) {
+			method.setAttributes(new AttributeInfo[] {codeAttr});
+		} else {
+			AttributeInfo[] attrs = new AttributeInfo[exAttrs.length + 1];
+			attrs[0] = codeAttr;
+			System.arraycopy(exAttrs, 0, attrs, 1, exAttrs.length);
+			method.setAttributes(attrs);
+		}
+		
+		newMethods[methods.length] = method;
+		
+		setMethods(newMethods);
+	}
+	
+	public void addMethod(String name, Class<?>[] params, Class<?> returnType, CodeAttribute codeAttr, ExceptionAttribute... exAttrs) {
     	String[] paramDesces = null;
     	if(params != null) {
     		paramDesces = new String[params.length];
@@ -678,10 +839,10 @@ public class ClassBytecode {
     	if(returnType != null) {
     		returnTypeDesc = DescriptorUtil.getClassDescription(returnType);
     	}
-    	addMethod(name, paramDesces, returnTypeDesc, codeAttr);
+    	addMethod(name, paramDesces, returnTypeDesc, codeAttr, exAttrs);
 	}
 	
-	public void addMethod(String name, String[] paramDesces, String returnTypeDesc, CodeAttribute codeAttr) {
+	public void addMethod(String name, String[] paramDesces, String returnTypeDesc, CodeAttribute codeAttr, ExceptionAttribute... exAttrs) {
     	String desc = DescriptorUtil.getMethodDescription(paramDesces, returnTypeDesc);
     	int nameIndex = constantPool.addName(name);
     	int descIndex = constantPool.addName(desc);
@@ -693,7 +854,14 @@ public class ClassBytecode {
 		method.setDesc(desc);
 		method.setNameIndex(nameIndex);
 		method.setDescriptorIndex(descIndex);
-		method.setAttributes(new AttributeInfo[] {codeAttr});
+		if(exAttrs.length == 0) {
+			method.setAttributes(new AttributeInfo[] {codeAttr});
+		} else {
+			AttributeInfo[] attrs = new AttributeInfo[exAttrs.length + 1];
+			attrs[0] = codeAttr;
+			System.arraycopy(exAttrs, 0, attrs, 1, exAttrs.length);
+			method.setAttributes(attrs);
+		}
 		
 		newMethods[methods.length] = method;
 		
@@ -709,6 +877,83 @@ public class ClassBytecode {
 				int newIdx = constantPool.addName(newName);
 				methods[i].setNameIndex(newIdx);
 			}
+		}
+	}
+	
+	
+	public static Pair<byte[], Integer> implConstructorCodes(String type, int slot) {
+		if(type.length() == 1) {
+			byte c = type.getBytes()[0];
+			if(c == 'Z' || c == 'B' || c == 'C' || c == 'S' || c == 'I') {
+				if(slot == 1) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("iload_1")}, 1);
+				}
+				if(slot == 2) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("iload_2")}, 1);
+				}
+				if(slot == 3) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("iload_3")}, 1);
+				}
+				return new Pair<>(new byte[] {InstructionTable.getInstructionCode("iload"), (byte)slot}, 1);
+			}
+			if(c == 'J') {
+				if(slot == 1) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("lload_1")}, 2);
+				}
+				if(slot == 2) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("lload_2")}, 2);
+				}
+				if(slot == 3) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("lload_3")}, 2);
+				}
+				return new Pair<>(new byte[] {InstructionTable.getInstructionCode("lload"), (byte)slot}, 2);
+			}
+			if(c == 'F') {
+				if(slot == 1) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("fload_1")}, 1);
+				}
+				if(slot == 2) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("fload_2")}, 1);
+				}
+				if(slot == 3) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("fload_3")}, 1);
+				}
+				return new Pair<>(new byte[] {InstructionTable.getInstructionCode("fload"), (byte)slot}, 1);
+			} 
+			if(c == 'D') {
+				if(slot == 1) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("dload_1")}, 2);
+				}
+				if(slot == 2) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("dload_2")}, 2);
+				}
+				if(slot == 3) {
+					return new Pair<>(new byte[] {InstructionTable.getInstructionCode("dload_3")}, 2);
+				}
+				return new Pair<>(new byte[] {InstructionTable.getInstructionCode("dload"), (byte)slot}, 2);
+			} 
+			throw new IllegalArgumentException("invalid instruction load type " + type);
+		}
+		if(slot == 1) {
+			return new Pair<>(new byte[] {InstructionTable.getInstructionCode("aload_1")}, 1);
+		}
+		if(slot == 2) {
+			return new Pair<>(new byte[] {InstructionTable.getInstructionCode("aload_2")}, 1);
+		}
+		if(slot == 3) {
+			return new Pair<>(new byte[] {InstructionTable.getInstructionCode("aload_3")}, 1);
+		}
+		return new Pair<>(new byte[] {InstructionTable.getInstructionCode("aload"), (byte)slot}, 1);
+	}
+	
+	
+	private String getFullClassName(String className, String pkg) {
+		if(pkg.indexOf('.') == -1 && pkg.indexOf('/') == -1) {
+			return pkg + '/' + className;
+		} else if(pkg.indexOf('.') == -1) {
+			return pkg + '/' + className;
+		} else {
+			return DescriptorUtil.replaceDot2Slash(pkg) + '/' + className;
 		}
 	}
 }

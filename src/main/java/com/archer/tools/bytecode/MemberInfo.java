@@ -90,7 +90,6 @@ public class MemberInfo {
     	
     	this.name = ((ConstantUtf8) cpInfo[nameIndex]).getValue();
     	this.desc = ((ConstantUtf8) cpInfo[descriptorIndex]).getValue();
-
     	
 		for (int j = 0; j < attributes.length; j++) {
     		int nameIndex = bytes.readInt16();

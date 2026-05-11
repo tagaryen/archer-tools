@@ -363,11 +363,11 @@ public class ConstantPool {
     	return findClass(DescriptorUtil.replaceDot2Slash(cls.getName()));
     }
     
-    public int findClass(String classDesc) {
+    public int findClass(String clazz) {
     	for(int i = 1; i < cpInfo.length; i++) {
     		if(cpInfo[i].tag == ConstantInfo.CONSTANT_Class) {
     			ConstantClass clsCon = (ConstantClass) cpInfo[i];
-    			if(((ConstantUtf8)cpInfo[clsCon.getNameIndex()]).getValue().equals(classDesc)) {
+    			if(((ConstantUtf8)cpInfo[clsCon.getNameIndex()]).getValue().equals(clazz)) {
     				return i;
     			}
     		}
