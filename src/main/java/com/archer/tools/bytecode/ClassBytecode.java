@@ -286,7 +286,6 @@ public class ClassBytecode {
             ConstantClass interfaceClazz = (ConstantClass)cpInfo[interfaceIndex];
             ConstantUtf8 interfaceName = (ConstantUtf8)cpInfo[interfaceClazz.getNameIndex()];
             interfaceArr[i] = interfaceName.getValue();
-        	System.out.println("  #"+interfaceIndex+"  "+interfaceArr[i]);
         }
         this.interfaces = interfaceArr;
 
