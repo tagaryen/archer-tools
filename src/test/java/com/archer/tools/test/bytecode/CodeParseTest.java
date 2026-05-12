@@ -31,7 +31,7 @@ public class CodeParseTest {
 //		}
 		
 
-		ClassBytecode newClass = new ClassBytecode(ParentImpl.class);
+		ClassBytecode newClass = new ClassBytecode(ParentImplTask.class);
 		ClassBytecode read = new ClassBytecode();
 		try {
 			read.readAndDecodeClass("D:/impl.class");

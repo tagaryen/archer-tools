@@ -492,10 +492,237 @@ public class AttributeInfo {
 		}
 	}
 	
+	public static class StackMapEntry {
+		int frameType, offsetDelta;
+		int[] tag, cpPoolIndex, offset;
+		int numberOfLocals, numberOfStack;
+		
+		int off = 0;
+		
+		public StackMapEntry(int frameType) {
+			this.frameType = frameType;
+			this.tag = new int[512];
+			this.cpPoolIndex = new int[512];
+			this.offset = new int[512];   
+		}
+		
+		public StackMapEntry(Bytes data) {
+			frameType = data.readInt8();
+	        if (frameType >= 0 && frameType <= 63) {               // same_frame
+	            offsetDelta = frameType;
+	            //no more data
+	        } else if (frameType >= 64 && frameType <= 127) {        // same_locals_1_stack_item_frame
+	        	offsetDelta = frameType - 64;
+	        	tag = new int[1];
+	        	cpPoolIndex = new int[1];
+	        	offset = new int[1];
+	        	parseVerificationTypeInfo(data, 0);
+	        } else if (frameType == 247) {                           // same_locals_1_stack_item_frame_extended
+	        	offsetDelta = frameType - 64;
+	        	tag = new int[1];
+	        	cpPoolIndex = new int[1];
+	        	offset = new int[1];
+	        	offsetDelta = data.readInt16();
+	        	parseVerificationTypeInfo(data, 0);
+	        } else if (frameType >= 248 && frameType <= 250) {       // chop_frame
+	            offsetDelta = 251 - frameType;                       // 隐含偏移增量
+	            //no more data
+	        } else if (frameType == 251) {                           // same_frame_extended
+	            offsetDelta = data.readInt16();
+	            //no more data
+	        } else if (frameType >= 252 && frameType <= 254) {       // append_frame
+	            offsetDelta = data.readInt16();
+	            int k = frameType - 251;     
+	        	tag = new int[k];
+	        	cpPoolIndex = new int[k];
+	        	offset = new int[k];                        // 新增的局部变量个数
+	            for (int i = 0; i < k; i++) {
+	                parseVerificationTypeInfo(data, i);
+	            }
+	        } else if (frameType == 255) {                           // full_frame
+	            offsetDelta = data.readInt16();
+	            numberOfLocals = data.readInt16();
+	        	tag = new int[512];
+	        	cpPoolIndex = new int[512];
+	        	offset = new int[512];   
+	            for (int i = 0; i < numberOfLocals; i++) {
+	                parseVerificationTypeInfo(data, i);
+	            }
+	            numberOfStack = data.readInt16();
+	            for (int i = 0; i < numberOfStack; i++) {
+	                parseVerificationTypeInfo(data, i + numberOfLocals);
+	            }
+	        } else {
+	            throw new BytecodeException("Invalid StackMap frame_type: " + frameType);
+	        }
+		}
+		
+		private void parseVerificationTypeInfo(Bytes data, int idx) {
+            tag[idx] = data.readInt8();
+            if(0 <= tag[idx] && tag[idx] <= 6) { //TOP INTEGER FLOAT DOUBLE LONG NULL UNINITIALIZED_THIS
+            	//no more data
+            } else if(tag[idx] == 7) {      //OBJECT
+            	cpPoolIndex[idx] = data.readInt16();
+            } else if(tag[idx] == 8) {      //UNINITIALIZED
+            	offset[idx] = data.readInt16();
+            } else {
+            	throw new BytecodeException("Invalid StackMap tag " + tag);
+            }
+		}
+		
+		private void writeVerificationTypeInfo(Bytes data, int idx) {
+			data.writeInt8(tag[idx]);
+            if(0 <= tag[idx] && tag[idx] <= 6) { //TOP INTEGER FLOAT DOUBLE LONG NULL UNINITIALIZED_THIS
+            	//no more data
+            } else if(tag[idx] == 7) {      //OBJECT
+            	data.writeInt16(cpPoolIndex[idx]);
+            } else if(tag[idx] == 8) {      //UNINITIALIZED
+            	data.writeInt16(offset[idx]);
+            } else {
+            	throw new BytecodeException("Invalid StackMap tag " + tag);
+            }
+		}
+		
+		public Bytes toBytes() {
+			Bytes data = new Bytes(1024);
+			data.writeInt8(frameType);
+			if (frameType >= 0 && frameType <= 63) {                 // same_frame
+	            //no more data
+	        } else if (frameType >= 64 && frameType <= 127) {        // same_locals_1_stack_item_frame
+	        	writeVerificationTypeInfo(data, 0);
+	        } else if (frameType == 247) {                           // same_locals_1_stack_item_frame_extended
+	        	writeVerificationTypeInfo(data, 0);
+	        } else if (frameType >= 248 && frameType <= 250) {       // chop_frame
+	            offsetDelta = 251 - frameType;                       // 隐含偏移增量
+	            //no more data
+	        } else if (frameType == 251) {                           // same_frame_extended
+	            offsetDelta = data.readInt16();
+	            //no more data
+	        } else if (frameType >= 252 && frameType <= 254) {       // append_frame
+	        	data.writeInt16(offsetDelta);
+	            int k = frameType - 251;                             // 新增的局部变量个数
+	            for (int i = 0; i < k; i++) {
+	            	writeVerificationTypeInfo(data, i);
+	            }
+	        } else if (frameType == 255) {                           // full_frame
+	        	data.writeInt16(offsetDelta);
+	        	data.writeInt16(numberOfLocals); 
+	            for (int i = 0; i < numberOfLocals; i++) {
+	            	writeVerificationTypeInfo(data, i);
+	            }
+	        	data.writeInt16(numberOfStack);
+	            for (int i = 0; i < numberOfStack; i++) {
+	            	writeVerificationTypeInfo(data, i + numberOfLocals);
+	            }
+	        } else {
+	            throw new BytecodeException("Invalid StackMap frame_type: " + frameType);
+	        }
+			return data;
+		}
+
+		public int getFrameType() {
+			return frameType;
+		}
+
+		public int getOffsetDelta() {
+			return offsetDelta;
+		}
+
+		public void setOffsetDelta(int offsetDelta) {
+			this.offsetDelta = offsetDelta;
+		}
+
+		public StackMapEntry addFrame(int tag, int cpPoolIndex, int offset) {
+        	this.tag[this.off] = tag;
+            if(0 <= tag && tag <= 6) { //TOP INTEGER FLOAT DOUBLE LONG NULL UNINITIALIZED_THIS
+            	//no more data
+            } else if(tag == 7) {      //OBJECT
+            	this.cpPoolIndex[this.off] = cpPoolIndex;
+            } else if(tag == 8) {      //UNINITIALIZED
+            	this.offset[this.off] = offset;
+            } else {
+            	throw new BytecodeException("Invalid StackMap tag " + tag);
+            }
+			this.off++;
+			return this;
+		}
+
+		public int getNumberOfLocals() {
+			return numberOfLocals;
+		}
+
+		public void setNumberOfLocals(int numberOfLocals) {
+			this.numberOfLocals = numberOfLocals;
+		}
+
+		public int getNumberOfStack() {
+			return numberOfStack;
+		}
+
+		public void setNumberOfStack(int numberOfStack) {
+			this.numberOfStack = numberOfStack;
+		}
+		
+	}
+	
+	public static class StackMapAttributeWriter {
+		
+		int nameIndex;
+		int entryCount;
+		StackMapEntry[] entries;
+		
+		private StackMapAttributeWriter(int nameIndex) {
+			this.nameIndex = nameIndex;
+			this.entryCount = 0;
+			this.entries = new StackMapEntry[128];
+		}
+		
+		public static StackMapAttributeWriter of(int nameIndex) {
+			return new StackMapAttributeWriter(nameIndex);
+		}
+		
+		public StackMapAttributeWriter add(StackMapEntry entry) {
+			entries[entryCount++] = entry;
+			return this;
+		}
+		
+		public StackMapAttribute toStackMapAttribute() {
+			Bytes data = new Bytes(1024);
+			data.writeInt16(entryCount);
+			for(int i = 0; i < entryCount; i++) {
+				data.readFromBytes(entries[i].toBytes());
+			}
+			return new StackMapAttribute(nameIndex, data.available(), data.readAll());
+		}
+	}
+	
 	public static class StackMapAttribute extends AttributeInfo {
 
 		public StackMapAttribute(int nameIdx, int len, byte[] data) {
 			super(nameIdx, len, data);
+			parse();
+		}
+		
+		private int entryCount;
+		private byte[] data;
+//		private StackMapEntry[] entries;
+		
+		private void parse() {
+			Bytes data = new Bytes(info);
+			this.entryCount = data.readInt16();
+			this.data = data.readAll();
+//			this.entries = new StackMapEntry[this.entryCount];
+//			for(int i = 0; i < entryCount; i++) {
+//				this.entries[i] = new StackMapEntry(data);
+//			}
+		}
+
+		public int getEntryCount() {
+			return entryCount;
+		}
+
+		public byte[] getData() {
+			return data;
 		}
 		
 	}
@@ -512,7 +739,6 @@ public class AttributeInfo {
 		public SourceFileAttribute(int nameIdx, int fileNameIndex) {
 			super(nameIdx, 0, null);
 			setInfo(new byte[] {(byte)((fileNameIndex >> 8) & 0xff), (byte)(fileNameIndex & 0xff)});
-			
 		}
 		
 		private int fileNameIndex;
@@ -525,6 +751,11 @@ public class AttributeInfo {
 			this.fileNameIndex = (b0 << 8) | b1;
 		}
 
+		public void refresh(int nameIdx, int fileNameIndex) {
+			super.nameIndex = nameIdx;
+			setFileNameIndex(fileNameIndex);
+		}
+		
 		public int getFileNameIndex() {
 			return fileNameIndex;
 		}

@@ -227,7 +227,7 @@ public class InstructionTable {
 	}
 
 	public static Pair<Integer, Integer> calculateMaxs(byte[] code) {
-		int maxStack = 1, maxLocals = 1;
+		int maxStack = 0, maxLocals = 0;
 		int padding;
 		for(int i = 0; i < code.length; i++) {
 			switch(code[i]) {

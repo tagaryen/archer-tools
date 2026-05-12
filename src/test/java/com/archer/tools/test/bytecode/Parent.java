@@ -1,7 +1,5 @@
 package com.archer.tools.test.bytecode;
 
-import java.io.IOException;
-
 public class Parent {
 
 	@Async
@@ -12,6 +10,5 @@ public class Parent {
 			e.printStackTrace();
 		}
 		System.out.println("print here " + name);
-		throw new RuntimeException("throw here");
 	}
 }

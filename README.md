@@ -5,13 +5,86 @@ maven:
     <dependency>  
         <groupId>io.github.tagaryen</groupId>  
         <artifactId>archer-tools</artifactId>  
-        <version>1.2.34</version>  
+        <version>1.3.1</version>  
     </dependency>  
 ```
 
-## Asm java bytecode
-see [AsyncProxy.java](https://github.com/Archerxy/archer-framework/blob/main/src/main/java/com/archer/framework/base/async/AsyncProxy.java) and [TestService.test1](https://github.com/Archerxy/archer-framework/blob/main/src/demos/com/archer/test/run/TestService.java) call Async test3()   
-the example shows how to use 'com.archer.tools.bytecode.ClassBytecode' for generating a child class and change the behavier of the super class  
+## Asm java bytecode  
+```java
+public class ClassA {
+    private String name;
+    private int age;
+    public String getName() {
+        return name; 
+    }
+    public void setName(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    public int getAge() {
+        return age;
+    }
+}
+=============Examples===========
+
+/***
+ * here we generate a new class
+ * public class ClassA$Impl extends ClassA {
+ *     public String nameCp;
+ *     public void setName(String name, int age) {
+ *         this.nameCp = name;
+ *         super.setName(null, age);
+ *     }
+ * }
+ * */
+ClassBytecode impl = (new ClassBytecode()).readAndDecodeClass(ClassA.class).generateImplClass("ClassA$Impl", "com.archer.tools.test.bytecode");
+
+/**
+ * Add constant pool
+ * 1. add field com.archer.tools.test.bytecode.ClassA$Impl.nameCp Ljava/lang/String
+ * 2. add invoke method com/archer/tools/test/bytecode/ClassA.setName()
+ * */
+impl.addField("nameCp", String.class, 1);
+int fieldIndex = impl.getConstantPool().findField("nameCp", String.class);
+int methodIndex = impl.getConstantPool().addMethod("setName", new String[] {"Ljava/lang/String;","I"}, "V", "com/archer/tools/test/bytecode/ClassA");
+
+
+/**
+ * Add override method to com.archer.tools.test.bytecode.ClassA$Impl:
+ * public void setName(String name, int age) {
+ *     this.nameCp = name;
+ *     super.setName(null, age);
+ * }
+ * */
+CodeAttributeWriter writer = CodeAttributeWriter.of(impl.getConstantPool().findName("Code"));
+writer.addInstruction("aload_0")
+	.addInstruction("aload_1")
+	.addInstruction16("putfield", fieldIndex)
+	.addInstruction("aload_0")
+	.addInstruction("aconst_null")
+	.addInstruction("iload_2")
+	.addInstruction16("invokespecial", methodIndex)
+	.addInstruction("return");
+impl.addMethod("setName", new String[] {"Ljava/lang/String;","I"}, "V", writer.toCodeAttribute());
+
+
+/**
+ * New com.archer.tools.test.bytecode.ClassA$Impl()
+ * */
+ClassA classAins = (ClassA)ClassUtil.newInstance(impl.loadSelfClass());
+classAins.setName("xuyihaoshuai", 18);
+
+/**
+ * Invoke methods for tests
+ * */
+System.out.println(classAins.getName());
+System.out.println(classAins.getAge());
+
+Field f = classAins.getClass().getDeclaredField("nameCp");
+String nameCp = (String) f.get(classAins);
+System.out.println(nameCp);
+
+``` 
 
 ## Digital signatures  
 ``` java  

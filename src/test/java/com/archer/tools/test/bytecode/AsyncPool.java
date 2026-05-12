@@ -16,6 +16,7 @@ public class AsyncPool {
 	}
 	
 	public void submit(AsyncTask task) {
+		System.out.println("call submit " + task.getClass().getName());
 		queue.offer(task);
 		synchronized(cond) {
 			cond.notify();

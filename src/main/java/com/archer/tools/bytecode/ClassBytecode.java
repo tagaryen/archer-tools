@@ -37,7 +37,7 @@ public class ClassBytecode {
     private int classIndex;
     private int superIndex;
     private int interfaceCount;
-    private int[] interfaceIndexArr;
+    private int[] interfaceIndexArr = new int[0];
     
     private int fieldCount;
     private MemberInfo[] fields;
@@ -158,12 +158,11 @@ public class ClassBytecode {
 		this.superIndex = superIndex;
 	}
 
-	public void setInterfaceCount(int interfaceCount) {
-		this.interfaceCount = interfaceCount;
-	}
-
-	public void setInterfaceIndexArr(int[] interfaceIndexArr) {
-		this.interfaceIndexArr = interfaceIndexArr;
+	public void addInterfaceIndexArr(int interfaceIndex) {
+		int[] newInterfaceArr = new int[this.interfaceCount + 1];
+		System.arraycopy(this.interfaceIndexArr, 0, newInterfaceArr, 0, this.interfaceCount);
+		newInterfaceArr[this.interfaceCount++] = interfaceIndex;
+		this.interfaceIndexArr = newInterfaceArr;
 	}
 
 	public void setFields(MemberInfo[] fields) {
@@ -278,12 +277,16 @@ public class ClassBytecode {
         this.interfaceCount = bytes.readInt16();
         this.interfaceIndexArr = new int[interfaceCount];
         String[] interfaceArr = new String[interfaceCount];
+        if(debugMode()) {
+        	System.out.println("Interface: interfaceCount="+interfaceCount);
+        }
         for (int i = 0; i < interfaceCount; i++) {
             int interfaceIndex = bytes.readInt16();
             interfaceIndexArr[i] = interfaceIndex;
             ConstantClass interfaceClazz = (ConstantClass)cpInfo[interfaceIndex];
             ConstantUtf8 interfaceName = (ConstantUtf8)cpInfo[interfaceClazz.getNameIndex()];
             interfaceArr[i] = interfaceName.getValue();
+        	System.out.println("  #"+interfaceIndex+"  "+interfaceArr[i]);
         }
         this.interfaces = interfaceArr;
 
@@ -309,11 +312,17 @@ public class ClassBytecode {
         // 类属性
         this.attributeCount = bytes.readInt16();
         attributes = new AttributeInfo[this.attributeCount];
+		if(debugMode()) {
+			System.out.println("Class Attribute:\n  attributeCount:"+attributeCount);
+		}
 		for (int j = 0; j < attributes.length; j++) {
     		int nameIndex = bytes.readInt16();
     		int length = bytes.readInt32();
             byte[] info = bytes.read(length);
     		String name = ((ConstantUtf8) cpInfo[nameIndex]).getValue();
+    		if(debugMode()) {
+    			System.out.println("  " + name + " data="+Arrays.toString(info));
+    		}
     		AttributeInfo attr;
     		if("SourceFile".equals(name)) {
     			attr = new SourceFileAttribute(nameIndex, length, info);
@@ -364,6 +373,8 @@ public class ClassBytecode {
 			methods[i].writeInto(opcode);
 	    }
 		
+		freshClassAttribute();
+		
 		//写入类属性
 		opcode.writeInt16(attributeCount);
 		for (int j = 0; j < attributes.length; j++) {
@@ -377,6 +388,7 @@ public class ClassBytecode {
 	}
 	
 	public Class<?> loadSelfClass() {
+		freshClassAttribute();
 		Bytes codeBs = encodeClassBytes();
 		try {
 			return loader.defineBytecodeClass(className, codeBs.array(), 0, codeBs.available()); 
@@ -396,8 +408,6 @@ public class ClassBytecode {
 		setAccessFlag(1);
 		setClassIndex(1);
 		setSuperIndex(3);
-		setInterfaceCount(0);
-		setInterfaceIndexArr(new int[0]);
 
 		
 		int index = 1;
@@ -511,8 +521,6 @@ public class ClassBytecode {
 		setAccessFlag(1);
 		setClassIndex(1);
 		setSuperIndex(3);
-		setInterfaceCount(0);
-		setInterfaceIndexArr(new int[0]);
 
 		int index = 1;
 		ConstantInfo[] constants = new ConstantInfo[65536];
@@ -601,10 +609,16 @@ public class ClassBytecode {
 		ConstantPool cp = new ConstantPool();
 		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
 		setConstantPool(cp);
+		
+		if(parentIsInterface) {
+			int interfaceIndex = cp.findClass(parentClassName);
+			addInterfaceIndexArr(interfaceIndex);
+		}
 
 		if(debugMode()) {
 			System.out.println("Method "+this.rawClassName+".<init>()V Code:");
 		}
+		
 		MemberInfo cons = new MemberInfo(false);
 		cons.setAccessFlags(ACC_PUBLIC);
 		cons.setNameIndex(consNameIndex);
@@ -631,8 +645,6 @@ public class ClassBytecode {
 		newcls.setAccessFlag(getAccessFlag());
 		newcls.setClassIndex(1);
 		newcls.setSuperIndex(3);
-		newcls.setInterfaceCount(0);
-		newcls.setInterfaceIndexArr(new int[0]);
 
 		
 		int index = 1;
@@ -654,9 +666,6 @@ public class ClassBytecode {
 			ConstantUtf8 interfaceUtf8Info = new ConstantUtf8();
 			interfaceUtf8Info.setValue("java/lang/Object");
 			constants[index++] = interfaceUtf8Info;
-
-			newcls.setInterfaceCount(1);
-			newcls.setInterfaceIndexArr(new int[] {index});
 		}
 		
 		ConstantClass superInfo = new ConstantClass();
@@ -702,6 +711,9 @@ public class ClassBytecode {
 		cp.setCpInfo(Arrays.copyOfRange(constants, 0, index));
 		newcls.setConstantPool(cp);
 
+		int interfaceIndex = cp.findClass(this.rawClassName);
+		addInterfaceIndexArr(interfaceIndex);
+		
 		MemberInfo[] newmethods = new MemberInfo[256];
 		int newmethodOff = 0;
 		
@@ -891,6 +903,15 @@ public class ClassBytecode {
 			if(oldName.equals(theName) && desc.equals(theDesc)) {
 				int newIdx = constantPool.addName(newName);
 				methods[i].setNameIndex(newIdx);
+			}
+		}
+	}
+	
+	public void freshClassAttribute() {
+		for(int i = 0; i < attributes.length; i++) {
+			if(attributes[i] instanceof SourceFileAttribute) {
+				SourceFileAttribute attr = (SourceFileAttribute)attributes[i];
+				attr.refresh(constantPool.findSourceIndex(), constantPool.findFileNameIndex());
 			}
 		}
 	}

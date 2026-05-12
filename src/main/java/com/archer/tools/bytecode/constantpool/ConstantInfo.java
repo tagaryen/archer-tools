@@ -9,6 +9,7 @@ public abstract class ConstantInfo {
     public static final int CONSTANT_Methodref = 10;
     public static final int CONSTANT_InterfaceMethodref = 11;
     public static final int CONSTANT_String = 8;
+    public static final int CONSTANT_Short = 3;
     public static final int CONSTANT_Integer = 3;
     public static final int CONSTANT_Float = 4;
     public static final int CONSTANT_Long = 5;
@@ -18,6 +19,28 @@ public abstract class ConstantInfo {
     public static final int CONSTANT_MethodHandle = 15;
     public static final int CONSTANT_MethodType = 16;
     public static final int CONSTANT_InvokeDynamic = 18;
+    
+    public static final String[] ConstantPoolNameIndex = {
+    		"Error",
+    		"UTF8",
+    		"Short",
+    		"Integer",
+    		"Float",
+    		"Long",
+    		"Double",
+    		"Class",
+    		"String",
+    		"Fieldref",
+    		"Methodref",
+    		"InterfaceMethodref",
+    		"NameAndType",
+    		"",
+    		"",
+    		"MethodHandle",
+    		"MethodType",
+    		"",
+    		"InvokeDynamic"
+    };
 
     public int tag;
     

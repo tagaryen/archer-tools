@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import com.archer.tools.bytecode.ClassBytecode;
 import com.archer.tools.bytecode.MemberInfo;
+import com.archer.tools.bytecode.AttributeInfo;
 import com.archer.tools.bytecode.AttributeInfo.*;
 import com.archer.tools.bytecode.BytecodeException;
 import com.archer.tools.bytecode.constantpool.ConstantInfo;
@@ -96,7 +97,6 @@ public class AsyncProxy {
 		int methodIndex = cp.addMethod(proxyMethodName, methodDesc, this.rawClassName);
 		
 
-		System.out.println("Method - <init> Code start");
 		/**
 		 * add constructor <init>(consArgs)V
 		 * */
@@ -112,12 +112,9 @@ public class AsyncProxy {
 		}
 		writer.addInstruction("return");
 
-		System.out.println("Method - <init> Code end");
-		
 		newcls.addConstructor(consArgs, writer.toCodeAttribute());
 		
 
-		System.out.println("Method - run Code start");
 		/**
 		 * add method run()V { impl.super$method(); }
 		 */
@@ -130,9 +127,7 @@ public class AsyncProxy {
 		runWriter.addInstruction16("invokevirtual", methodIndex)
 			.addInstruction("return");
 
-		System.out.println("Method - run Code end");
-		
-		newcls.addMethod("run", args, "V", runWriter.toCodeAttribute());
+		newcls.addMethod("run", new String[0], "V", runWriter.toCodeAttribute());
 		
 		return newcls;
 	}
@@ -143,7 +138,8 @@ public class AsyncProxy {
 			throw new IllegalArgumentException("the number of overrideMethods and overrideMethodDescs must equal");
 		}
 		
-		ClassBytecode newcls = superCls.generateImplClass(this.classSimpleName, pkg);
+		ClassBytecode newcls = new ClassBytecode();
+		newcls.toEmptyImplClass(this.classSimpleName, pkg, this.superRawClassName, false);
 		ConstantPool cp = newcls.getConstantPool();
 
 		//add field AsyncPool, impl.pool
@@ -151,6 +147,9 @@ public class AsyncProxy {
 		
 		//add invoke method impl.pool.submit(implTask)
 		int submitIndex = cp.addMethod("submit", "(" + DescriptorUtil.getClassDescription(AsyncTask.class) + ")V", DescriptorUtil.replaceDot2Slash(AsyncPool.class.getName()));
+		int exMethodIndex = cp.addMethod("printStackTrace", "()V", "java/lang/Exception");
+		int stackMapIndex = cp.addName("StackMapTable");
+		int exClassIndex = cp.findClass("java/lang/Exception");
 		
 		for(int i = 0; i < overrideMethods.length; i++) {
 			
@@ -164,14 +163,12 @@ public class AsyncProxy {
 			 * add method impl.super$methodName(args)V {try{super.methodName();}catch(Exception e){e.printStackTrace();}}
 			 * */
 			int superMethodIndex = cp.addMethod(methodName, methodDesc, this.superRawClassName);
-			int exMethodIndex = cp.addMethod("printStackTrace", "()V", "java/lang/Exception");
-			int stackMapIndex = cp.addName("StackMapTable");
 			CodeAttributeWriter writer = CodeAttributeWriter.of(cp.findName("Code"));
 			writer.addInstruction("aload_0");
 			
 			String[] args = DescriptorUtil.methodDescToArgDescs(methodDesc);
 			int slot = 1;
-			int exStart = 0, exEnd = 0, exTarget = 0, exType = cp.findClass("java/lang/Exception");
+			int exStart = 0, exEnd = 0, exTarget = 0, exType = exClassIndex;
 			for(int j = 0; j < args.length; j++) {
 				slot = loadParamCode(writer, args[j], slot);
 			}
@@ -190,12 +187,17 @@ public class AsyncProxy {
 			} else {
 				writer.addInstruction("aload_" + slot);
 			}
-			writer.addInstruction16("invokespecial", exMethodIndex);
+			writer.addInstruction16("invokevirtual", exMethodIndex);
 			writer.addInstruction("return");
 			
 			CodeAttribute codeAttr = writer.toCodeAttribute();
 			codeAttr.setExceptionTable(new ExceptionTable[] {new ExceptionTable(exStart, exEnd, exTarget, exType)});
-			StackMapAttribute stackMap = new StackMapAttribute();
+			
+			StackMapAttributeWriter stackMapWriter = StackMapAttributeWriter.of(stackMapIndex);
+			stackMapWriter.add((new StackMapEntry(72)).addFrame(7, exClassIndex, 0));
+			stackMapWriter.add((new StackMapEntry(4)));
+			
+			codeAttr.setAttributes(new AttributeInfo[] {stackMapWriter.toStackMapAttribute()});
 			
 			newcls.addMethod(proxyMethodName, args, "V", codeAttr);
 			

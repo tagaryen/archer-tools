@@ -2,6 +2,7 @@ package com.archer.tools.bytecode.constantpool;
 
 import com.archer.net.Bytes;
 import com.archer.tools.bytecode.BytecodeException;
+import com.archer.tools.bytecode.ClassBytecode;
 import com.archer.tools.bytecode.util.DescriptorUtil;
 
 public class ConstantPool {
@@ -36,10 +37,13 @@ public class ConstantPool {
         int constantPoolCount = bytes.readInt16();
         cpInfo = new ConstantInfo[constantPoolCount];
         for (int i = 1; i < constantPoolCount; i++) {
-            int tag = (int) bytes.readInt8();
+            int tag = bytes.readInt8();
             ConstantInfo constantInfo = ConstantInfo.getConstantInfo(tag);
             constantInfo.read(bytes);
             cpInfo[i] = constantInfo;
+    		if(ClassBytecode.debugMode()) {
+				System.out.println("#"+i + "=" + ConstantInfo.ConstantPoolNameIndex[cpInfo[i].tag]);
+    		}
             if (tag == ConstantInfo.CONSTANT_Double || tag == ConstantInfo.CONSTANT_Long) {
                 i++;
             }
