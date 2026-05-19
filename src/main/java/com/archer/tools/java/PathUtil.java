@@ -49,6 +49,18 @@ public class PathUtil {
     	return path.substring(idx + 1);
     }
     
+    public static String getSuffixName(String path) {
+    	int pathIdx = path.lastIndexOf(File.separator);
+    	int idx = path.indexOf('.', pathIdx+1);
+    	if(idx < 0) {
+    		return "";
+    	}
+    	if(idx >= path.length()) {
+    		throw new IllegalArgumentException("Invalid path: " + path);
+    	}
+    	return path.substring(idx);
+    }
+    
     public static void mkdirs(File f) {
         if(!f.exists()) {
             if(!f.mkdirs()) {

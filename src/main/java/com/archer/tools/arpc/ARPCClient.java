@@ -117,7 +117,7 @@ public class ARPCClient {
 		return cb.getResponse();
 	}
 	
-	public void doSendAsync(String url, Object data) {
+	private void doSendAsync(String url, Object data) {
 		doConnect();
 		Bytes out = new Bytes();
 		byte[] uriBs = url.getBytes(StandardCharsets.UTF_8);
