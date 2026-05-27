@@ -8,6 +8,8 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 public class PathUtil {
+	
+	private static final File empty = new File("");
 
     public static String getClassPath() {
         URL url = Thread.currentThread().getContextClassLoader().getResource("");
@@ -21,7 +23,7 @@ public class PathUtil {
 
     public static String getCurrentWorkDir() {
         try {
-            return (new File("")).getCanonicalPath() + File.separator;
+            return empty.getCanonicalPath() + File.separator;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -43,20 +45,13 @@ public class PathUtil {
     	if(idx < 0) {
     		return path;
     	}
-    	if(idx >= path.length()) {
-    		throw new IllegalArgumentException("Invalid path: " + path);
-    	}
     	return path.substring(idx + 1);
     }
     
     public static String getSuffixName(String path) {
-    	int pathIdx = path.lastIndexOf(File.separator);
-    	int idx = path.indexOf('.', pathIdx+1);
+    	int idx = path.lastIndexOf('.');
     	if(idx < 0) {
     		return "";
-    	}
-    	if(idx >= path.length()) {
-    		throw new IllegalArgumentException("Invalid path: " + path);
     	}
     	return path.substring(idx);
     }

@@ -4,16 +4,16 @@ import com.archer.net.HandlerList;
 import com.archer.net.ServerChannel;
 import com.archer.net.ssl.SslContext;
 
-public class JSONHttpServer {
+public class SimpleHttpServer {
 	
 	private SslOption sslOption;
 	private ServerChannel server;
 	
-	public JSONHttpServer() {
+	public SimpleHttpServer() {
 		this(null);
 	}
 	
-	public JSONHttpServer(SslOption sslOption) {
+	public SimpleHttpServer(SslOption sslOption) {
 		this.sslOption = sslOption;
 	}
 	

@@ -18,7 +18,7 @@ import com.archer.tools.http.client.Request;
 import com.archer.tools.http.client.Response;
 import com.archer.tools.http.server.HttpListener;
 import com.archer.tools.http.server.HttpServerException;
-import com.archer.tools.http.server.JSONHttpServer;
+import com.archer.tools.http.server.SimpleHttpServer;
 import com.archer.xjson.XJSONStatic;
 
 
@@ -34,7 +34,7 @@ import javax.crypto.spec.SecretKeySpec;
 public class HttpTest {
 	
 	public static void startHttpServer() {
-		JSONHttpServer http = new JSONHttpServer();
+		SimpleHttpServer http = new SimpleHttpServer();
 		try {
 			http.listen("127.0.0.1", 9677, new HttpListener() {
 
