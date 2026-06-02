@@ -273,6 +273,48 @@ public class ClassUtil {
     	}
     }
     
+    public static String getLastName(String name) {
+    	int idx = name.lastIndexOf('/');
+    	if(idx < 0) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	if(idx >= name.length()) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	return name.substring(idx + 1);
+    }
+    
+    public static String getPackageName(String name) {
+    	int idx = name.lastIndexOf('/');
+    	if(idx < 0) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	if(idx >= name.length()) {
+    		throw new IllegalArgumentException("Invalid name: " + name);
+    	}
+    	return name.substring(0, idx);
+    }
+
+    public static String replaceDot2Slash(String name) {
+    	byte[] bs = name.getBytes();
+    	for(int i = 0; i < bs.length; i++) {
+    		if('.' == bs[i]) {
+    			bs[i] = '/';
+    		}
+    	}
+    	return new String(bs);
+    }
+    
+    public static String replaceSlash2Dot(String name) {
+    	byte[] bs = name.getBytes();
+    	for(int i = 0; i < bs.length; i++) {
+    		if('/' == bs[i]) {
+    			bs[i] = '.';
+    		}
+    	}
+    	return new String(bs);
+    }
+    
     
     static class ConstructorStuff {
     	private Constructor<?> constructor;

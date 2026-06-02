@@ -2,6 +2,7 @@ package com.archer.tools.http.server;
 
 import com.archer.net.HandlerList;
 import com.archer.net.ServerChannel;
+import com.archer.net.http.HttpServerException;
 import com.archer.net.ssl.SslContext;
 
 public class SimpleHttpServer {
