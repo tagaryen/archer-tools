@@ -4,7 +4,7 @@ public class MessageA {
 	private String a;
 	
 	public MessageA() {
-		a = "a string";
+		a = "a string askjnakjscnakjncajjckavkaksjassssssssssss899999999999999999a6666****ajshcbajcbkjasnckjansckjaspkcakclkamc;lkamckamsckla%%%$$#GFCAGVVXXIHbbascy98aysciqoiuchaiojscajnkj";
 	}
 
 	public String getA() {

@@ -42,11 +42,14 @@ public class ARPCTest {
 		client0.callAsync("/你好-徐熠", new MessageA(), new ARPCClientCallback<MessageB>() {
 			@Override
 			public void onReceive(MessageB r) {
-				System.out.println("客户端0收到数据B:" + r.getB());
+				System.out.println("客户端0收到数据B 1:" + r.getB());
 			}});
 		
 		MessageC c = client1.call("/你好-徐熠-1", new MessageB(), MessageC.class);
-		System.out.println("客户端1收到数据c:" + c.getC());
+		System.out.println("客户端1收到数据C:" + c.getC());
+
+		MessageB c0 = client0.call("/你好-徐熠", new MessageA(), MessageB.class);
+		System.out.println("客户端0收到数据B 2:" + c0.getB());
 		
 		try {
 			Thread.sleep(3000);

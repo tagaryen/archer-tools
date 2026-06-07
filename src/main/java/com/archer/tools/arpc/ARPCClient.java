@@ -121,7 +121,7 @@ public class ARPCClient {
 		byte[] uriBs = url.getBytes(StandardCharsets.UTF_8);
 		byte[] dataBs = XJSONStatic.stringify(data).getBytes(StandardCharsets.UTF_8);
 		int length = 2 + uriBs.length + dataBs.length;
-		Bytes out = new Bytes(length);
+		Bytes out = new Bytes(4 + length);
 		out.writeInt32(length);
 		out.writeInt16(uriBs.length);
 		out.write(uriBs);
