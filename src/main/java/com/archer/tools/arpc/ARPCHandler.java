@@ -25,7 +25,7 @@ abstract class ARPCHandler implements Handler {
 	public void onDisconnect(ChannelContext ctx) {}
 
 	@Override
-	public void onWrite(ChannelContext ctx, Bytes output) {}
+	public void onWrite(ChannelContext ctx, byte[] output) {}
 
 	@Override
 	public void onError(ChannelContext ctx, Throwable t) {
@@ -52,9 +52,11 @@ abstract class ARPCHandler implements Handler {
 	}
 	
 	protected void sendNotFound(ChannelContext ctx) {
-		Bytes out = new Bytes();
+		int length = 2 + NOT_FOUND_URI.length;
+		Bytes out = new Bytes(4 + length);
+		out.writeInt32(length);
 		out.writeInt16(NOT_FOUND_URI.length);
 		out.write(NOT_FOUND_URI);
-		ctx.toLastOnWrite(out);
+		ctx.toLastOnWrite(out.array());
 	}
 }

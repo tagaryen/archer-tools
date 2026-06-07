@@ -26,8 +26,15 @@ class ARPCClientHandler extends ARPCHandler {
 	}
 
 	@Override
-	public void onRead(ChannelContext ctx, Bytes input) {
-		byte[] uriBs = input.read(input.readInt16());
+	public void onRead(ChannelContext ctx) {
+		int totalLen = ctx.readInt32();
+		byte[] dataBs = ctx.read(totalLen);
+		if(dataBs.length != totalLen) {
+			this.onError(ctx, new ARPCException("Remote send Data that can not be parsed"));
+			return;
+		}
+		Bytes data = new Bytes(dataBs);
+		byte[] uriBs = data.read(data.readInt16());
 		if(!check(uriBs)) {
 			this.onError(ctx, new ARPCException("Remote send Not found"));
 			return;
@@ -38,7 +45,7 @@ class ARPCClientHandler extends ARPCHandler {
 			this.onError(ctx, new ARPCException("Can not found url " + url));
 			return ;
 		}
-		cb.handle(new String(input.readAll(), StandardCharsets.UTF_8));
+		cb.handle(new String(data.readAll(), StandardCharsets.UTF_8));
 	}
 	
 	@Override

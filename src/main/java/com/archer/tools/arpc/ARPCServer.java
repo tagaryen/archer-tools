@@ -4,7 +4,6 @@ import java.util.function.Consumer;
 
 import com.archer.net.HandlerList;
 import com.archer.net.ServerChannel;
-import com.archer.net.handler.BaseFrameHandler;
 import com.archer.net.ssl.SslContext;
 
 public class ARPCServer {
@@ -42,7 +41,7 @@ public class ARPCServer {
 	
 	public void start() {
 		HandlerList handlers = new HandlerList();
-		handlers.add(new BaseFrameHandler(), handler);
+		handlers.add(handler);
 		server.setReadThreads(threadNums);
 		server.handlerList(handlers);
 		server.listen(host, port);

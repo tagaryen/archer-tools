@@ -45,7 +45,7 @@ public class HttpTest {
 				}
 
 				@Override
-				public void onServerException(HttpRequest req, HttpResponse res, Throwable t) {
+				public void onServerException(Throwable t) {
 					
 				}});
 		} catch (HttpServerException e) {

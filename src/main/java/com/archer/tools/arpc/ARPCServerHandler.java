@@ -26,10 +26,18 @@ class ARPCServerHandler extends ARPCHandler {
 	public void onConnect(ChannelContext ctx) {}
 
 	@Override
-	public void onRead(ChannelContext ctx, Bytes input) {
+	public void onRead(ChannelContext ctx) {
+		int totalLen = ctx.readInt32();
+		byte[] inputBs = ctx.read(totalLen);
+		if(inputBs.length != totalLen) {
+			this.onError(ctx, new ARPCException("Remote send Data can not be parsed"));
+			return;
+		}
+		Bytes input = new Bytes(inputBs);
 		byte[] uriBs = input.read(input.readInt16());
 		if(!check(uriBs)) {
 			this.onError(ctx, new ARPCException("Remote send Not found"));
+			this.sendNotFound(ctx);
 			return;
 		}
 		String url = new String(uriBs, StandardCharsets.UTF_8);
@@ -39,7 +47,7 @@ class ARPCServerHandler extends ARPCHandler {
 			this.sendNotFound(ctx);
 			return ;
 		}
-		Bytes ret = matcher.handle(new String(input.readAll(), StandardCharsets.UTF_8));
+		byte[] ret = matcher.handle(new String(input.readAll(), StandardCharsets.UTF_8));
 		ctx.toLastOnWrite(ret);
 	}
 	
@@ -47,7 +55,7 @@ class ARPCServerHandler extends ARPCHandler {
 	public void onDisconnect(ChannelContext ctx) {}
 
 	@Override
-	public void onWrite(ChannelContext ctx, Bytes output) {}
+	public void onWrite(ChannelContext ctx, byte[] output) {}
 
 
 	@Override

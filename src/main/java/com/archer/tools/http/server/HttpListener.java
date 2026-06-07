@@ -7,5 +7,5 @@ public interface HttpListener {
 
 	void inComingMessage(HttpRequest req, HttpResponse res);
 	
-	void onServerException(HttpRequest req, HttpResponse res, Throwable t);
+	void onServerException(Throwable t);
 }

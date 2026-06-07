@@ -7,7 +7,6 @@ import com.archer.net.Bytes;
 import com.archer.net.Channel;
 import com.archer.net.ChannelContext;
 import com.archer.net.HandlerList;
-import com.archer.net.handler.BaseFrameHandler;
 import com.archer.net.ssl.SslContext;
 import com.archer.xjson.JavaTypeRef;
 import com.archer.xjson.XJSONStatic;
@@ -35,7 +34,7 @@ public class ARPCClient {
 		this.handler = new ARPCClientHandler(this);
 
 		HandlerList handlers = new HandlerList();
-		handlers.add(new BaseFrameHandler(), handler);
+		handlers.add(handler);
 		this.channel.handlerList(handlers);
 	}
 	
@@ -119,11 +118,14 @@ public class ARPCClient {
 	
 	private void doSendAsync(String url, Object data) {
 		doConnect();
-		Bytes out = new Bytes();
 		byte[] uriBs = url.getBytes(StandardCharsets.UTF_8);
+		byte[] dataBs = XJSONStatic.stringify(data).getBytes(StandardCharsets.UTF_8);
+		int length = 2 + uriBs.length + dataBs.length;
+		Bytes out = new Bytes(length);
+		out.writeInt32(length);
 		out.writeInt16(uriBs.length);
 		out.write(uriBs);
-		out.write(XJSONStatic.stringify(data).getBytes(StandardCharsets.UTF_8));
-		ctx.toLastOnWrite(out);
+		out.write(dataBs);
+		ctx.write(out.array());
 	}
 }

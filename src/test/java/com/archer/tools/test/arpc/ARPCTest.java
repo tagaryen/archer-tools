@@ -98,8 +98,8 @@ public class ARPCTest {
 	}
 	
 	public static void main(String args[]) {
-//		test();
+		test();
 //		serverGmsslTest();
-		clientGmsslTest();
+//		clientGmsslTest();
 	}
 }
