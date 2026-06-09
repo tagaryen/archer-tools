@@ -32,7 +32,7 @@ public abstract class ARPCClientCallback<Recv> {
 	
 	protected void release() {
 		synchronized(lock) {
-			lock.notifyAll();
+			lock.notify();
 		}
 	}
 	

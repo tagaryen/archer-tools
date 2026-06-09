@@ -27,25 +27,27 @@ class ARPCClientHandler extends ARPCHandler {
 
 	@Override
 	public void onRead(ChannelContext ctx) {
-		int totalLen = ctx.readInt32();
-		byte[] dataBs = ctx.read(totalLen);
-		if(dataBs.length != totalLen) {
-			this.onError(ctx, new ARPCException("Remote send Data that can not be parsed"));
-			return;
+		while(true) {
+			int totalLen = ctx.readInt32();
+			if(totalLen <= 0) {
+				return ;
+			}
+			byte[] dataBs = ctx.read(totalLen);
+			if(dataBs.length != totalLen) {
+				this.onError(ctx, new ARPCException("Remote send Data that can not be parsed"));
+			}
+			Bytes data = new Bytes(dataBs);
+			byte[] uriBs = data.read(data.readInt16());
+			if(!check(uriBs)) {
+				this.onError(ctx, new ARPCException("Remote send Not found"));
+			}
+			String url = new String(uriBs, StandardCharsets.UTF_8);
+			ARPCClientCallback<?> cb = cbCache.getOrDefault(url, null);
+			if(cb == null) {
+				this.onError(ctx, new ARPCException("Can not found url " + url));
+			}
+			cb.handle(new String(data.readAll(), StandardCharsets.UTF_8));
 		}
-		Bytes data = new Bytes(dataBs);
-		byte[] uriBs = data.read(data.readInt16());
-		if(!check(uriBs)) {
-			this.onError(ctx, new ARPCException("Remote send Not found"));
-			return;
-		}
-		String url = new String(uriBs, StandardCharsets.UTF_8);
-		ARPCClientCallback<?> cb = cbCache.getOrDefault(url, null);
-		if(cb == null) {
-			this.onError(ctx, new ARPCException("Can not found url " + url));
-			return ;
-		}
-		cb.handle(new String(data.readAll(), StandardCharsets.UTF_8));
 	}
 	
 	@Override

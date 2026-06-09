@@ -42,7 +42,7 @@ public class ARPCServer {
 	public void start() {
 		HandlerList handlers = new HandlerList();
 		handlers.add(handler);
-		server.setReadThreads(threadNums);
+		server.setLoopThreads(threadNums);
 		server.handlerList(handlers);
 		server.listen(host, port);
 	}

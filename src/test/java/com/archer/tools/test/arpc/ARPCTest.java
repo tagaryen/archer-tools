@@ -14,8 +14,8 @@ import com.archer.xjson.XJSONStatic;
 public class ARPCTest {
 	public static void test() {
 		ARPCServer server = new ARPCServer("127.0.0.1", 9612);
-		ARPCClient client0 = new ARPCClient("127.0.0.1", 9612);
-		ARPCClient client1 = new ARPCClient("127.0.0.1", 9612);
+//		ARPCClient client0 = new ARPCClient("127.0.0.1", 9612);
+//		ARPCClient client1 = new ARPCClient("127.0.0.1", 9612);
 		
 		server.addMessageListenner("/你好-徐熠-1", new ARPCMessageListenner<MessageB>() {
 
@@ -37,28 +37,37 @@ public class ARPCTest {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		
-		
-		client0.callAsync("/你好-徐熠", new MessageA(), new ARPCClientCallback<MessageB>() {
-			@Override
-			public void onReceive(MessageB r) {
-				System.out.println("客户端0收到数据B 1:" + r.getB());
-			}});
-		
-		MessageC c = client1.call("/你好-徐熠-1", new MessageB(), MessageC.class);
-		System.out.println("客户端1收到数据C:" + c.getC());
-
-		MessageB c0 = client0.call("/你好-徐熠", new MessageA(), MessageB.class);
-		System.out.println("客户端0收到数据B 2:" + c0.getB());
+//		
+//		
+//		Thread t0 = new Thread(() -> {
+//			client0.callAsync("/你好-徐熠", new MessageA(), new ARPCClientCallback<MessageB>() {
+//				@Override
+//				public void onReceive(MessageB r) {
+//					System.out.println("客户端0收到数据B 1:" + r.getB());
+//				}});
+//		});
+//		
+//		Thread t1 = new Thread(() -> {
+//			MessageC c = client1.call("/你好-徐熠-1", new MessageB(), MessageC.class);
+//			System.out.println("客户端1收到数据C:" + c.getC());
+//		});
+//		Thread t2 = new Thread(() -> {
+//			MessageB c0 = client0.call("/你好-徐熠", new MessageA(), MessageB.class);
+//			System.out.println("客户端0收到数据B 2:" + c0.getB());
+//		});
+//		
+//		t0.start();
+//		t1.start();
+//		t2.start();
 		
 		try {
-			Thread.sleep(3000);
+			Thread.sleep(10000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		
-		client0.close();
-		client1.close();
+//		client0.close();
+//		client1.close();
 		server.close();
 	}
 	
