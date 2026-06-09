@@ -63,8 +63,12 @@ class ARPCServerHandler extends ARPCHandler {
 					return ;
 				}
 				pkgSize.size = 0;
-				byte[] ret = matcher.handle(nonce, new String(input.readAll(), StandardCharsets.UTF_8));
-				ctx.toLastOnWrite(ret);
+				try {
+					byte[] ret = matcher.handle(nonce, new String(input.readAll(), StandardCharsets.UTF_8));
+					ctx.toLastOnWrite(ret);
+				} catch(Exception e) {
+					sendParamErr(ctx, nonce);
+				}
 			}
 		}
 	}
@@ -74,10 +78,16 @@ class ARPCServerHandler extends ARPCHandler {
 
 	@Override
 	public void onWrite(ChannelContext ctx, byte[] output) {}
-
-
-	@Override
-	public void onSslCertificate(ChannelContext ctx, byte[] cert) {}
+	
+	private void sendParamErr(ChannelContext ctx, byte[] nonce) {
+		int length = 16 + 2 + PARAM_ERR_URI.length;
+		Bytes out = new Bytes(4 + length);
+		out.writeInt32(length);
+		out.write(nonce);
+		out.writeInt16(PARAM_ERR_URI.length);
+		out.write(PARAM_ERR_URI);
+		ctx.toLastOnWrite(out.array());
+	}
 	
 	class PkgSize {
 		volatile int size = 0;

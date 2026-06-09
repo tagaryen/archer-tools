@@ -8,6 +8,7 @@ import com.archer.net.handler.Handler;
 
 abstract class ARPCHandler implements Handler {
 	protected static final byte[] NOT_FOUND_URI = {0, 0, 0, 0, 'N', 'O', 'T', 'F', 'O', 'U', 'N', 'D'};
+	protected static final byte[] PARAM_ERR_URI = {0, 0, 0, 0, 'P', 'A', 'R', 'A', 'M', 'E', 'R', 'R'};
 	
 	private Consumer<Throwable> exHandler = null;
 	
