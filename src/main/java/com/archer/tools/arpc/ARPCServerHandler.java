@@ -51,24 +51,19 @@ class ARPCServerHandler extends ARPCHandler {
 					return;
 				}
 				Bytes input = new Bytes(inputBs);
+				byte[] nonce = input.read(16);
 				int uriLen = input.readInt16();
 				byte[] uriBs = input.read(uriLen);
-				if(!check(uriBs)) {
-					pkgSize.size = 0;
-					this.onError(ctx, new ARPCException("Remote send Not found"));
-					this.sendNotFound(ctx);
-					return;
-				}
 				String url = new String(uriBs, StandardCharsets.UTF_8);
 				ARPCMatcher matcher = urlMatcher.getOrDefault(url, null);
 				if(matcher == null) {
 					pkgSize.size = 0;
 					this.onError(ctx, new ARPCException("Can not found matcher for url " + url));
-					this.sendNotFound(ctx);
+					this.sendNotFound(ctx, nonce);
 					return ;
 				}
 				pkgSize.size = 0;
-				byte[] ret = matcher.handle(new String(input.readAll(), StandardCharsets.UTF_8));
+				byte[] ret = matcher.handle(nonce, new String(input.readAll(), StandardCharsets.UTF_8));
 				ctx.toLastOnWrite(ret);
 			}
 		}

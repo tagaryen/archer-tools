@@ -11,11 +11,16 @@ public abstract class ARPCClientCallback<Recv> {
 	
 	private Object lock = new Object();
 	private Recv r = null;
+	private RuntimeException ex = null;
 	
 	public abstract void onReceive(Recv r);
 	
-	protected void handle(String text) {
-		onReceive(XJSONStatic.parse(text, getJavaType()));
+	protected void handle(String text, RuntimeException e) {
+		if(e != null) {
+			this.ex = e;
+		} else {
+			onReceive(XJSONStatic.parse(text, getJavaType()));
+		}
 	}
 	
 	protected void await() {
@@ -42,6 +47,14 @@ public abstract class ARPCClientCallback<Recv> {
 	
 	protected Recv getResponse() {
 		return this.r;
+	}
+
+	protected void setException(RuntimeException e) {
+		this.ex = e;
+	}
+	
+	protected RuntimeException getException() {
+		return ex;
 	}
 	
 	protected Type getJavaType() {

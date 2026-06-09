@@ -1,23 +1,21 @@
 package com.archer.tools.arpc;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.archer.net.Bytes;
 import com.archer.net.ChannelContext;
 
 class ARPCClientHandler extends ARPCHandler {
 	
-	private ConcurrentHashMap<String, ARPCClientCallback<?>> cbCache = new ConcurrentHashMap<>();
-	
 	private ARPCClient cli;
+	private ARPCMap cbCache = new ARPCMap();
 	
 	public ARPCClientHandler(ARPCClient cli) {
 		this.cli = cli;
 	}
 	
-	protected void addCallback(String url, ARPCClientCallback<?> cb) {
-		cbCache.put(url, cb);
+	protected void addCallback(byte[] nonce, ARPCClientCallback<?> cb) {
+		cbCache.saveCallback(nonce, cb);
 	}
 	
 	@Override
@@ -37,16 +35,18 @@ class ARPCClientHandler extends ARPCHandler {
 				this.onError(ctx, new ARPCException("Remote send Data that can not be parsed"));
 			}
 			Bytes data = new Bytes(dataBs);
+			byte[] nonce = data.read(16);
 			byte[] uriBs = data.read(data.readInt16());
-			if(!check(uriBs)) {
-				this.onError(ctx, new ARPCException("Remote send Not found"));
-			}
-			String url = new String(uriBs, StandardCharsets.UTF_8);
-			ARPCClientCallback<?> cb = cbCache.getOrDefault(url, null);
+			ARPCClientCallback<?> cb = cbCache.findCallback(nonce);
 			if(cb == null) {
-				this.onError(ctx, new ARPCException("Can not found url " + url));
+				this.onError(ctx, new ARPCException("Invalid nonce"));
+			} else {
+				if(isNotFound(uriBs)) {
+					cb.handle(null, new ARPCException("Server url Not found"));
+				} else {
+					cb.handle(new String(data.readAll(), StandardCharsets.UTF_8), null);
+				}
 			}
-			cb.handle(new String(data.readAll(), StandardCharsets.UTF_8));
 		}
 	}
 	

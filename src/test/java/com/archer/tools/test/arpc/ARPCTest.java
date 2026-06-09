@@ -13,62 +13,62 @@ import com.archer.xjson.XJSONStatic;
 
 public class ARPCTest {
 	public static void test() {
-		ARPCServer server = new ARPCServer("127.0.0.1", 9612);
-//		ARPCClient client0 = new ARPCClient("127.0.0.1", 9612);
-//		ARPCClient client1 = new ARPCClient("127.0.0.1", 9612);
+//		ARPCServer server = new ARPCServer("127.0.0.1", 9612);
+//		
+//		server.addMessageListenner("/你好-某个人-1", new ARPCMessageListenner<MessageB>() {
+//
+//			@Override
+//			public Object onMessage(MessageB in) {
+//				System.out.println("服务端收到数据B:" + in.getB());
+//				return new MessageC();
+//			}});
+//		server.addMessageListenner("/你好-某个人", new ARPCMessageListenner<MessageA>() {
+//			@Override
+//			public Object onMessage(MessageA in) {
+//				System.out.println("服务端收到数据A:" + in.getA());
+//				return new MessageB();
+//			}});
 		
-		server.addMessageListenner("/你好-徐熠-1", new ARPCMessageListenner<MessageB>() {
-
-			@Override
-			public Object onMessage(MessageB in) {
-				System.out.println("服务端收到数据B:" + in.getB());
-				return new MessageC();
-			}});
-		server.addMessageListenner("/你好-徐熠", new ARPCMessageListenner<MessageA>() {
-			@Override
-			public Object onMessage(MessageA in) {
-				System.out.println("服务端收到数据A:" + in.getA());
-				return new MessageB();
-			}});
+//		server.start();
+//		try {
+//			Thread.sleep(500);
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+//		
+		ARPCClient client0 = new ARPCClient("127.0.0.1", 9612);
+		ARPCClient client1 = new ARPCClient("127.0.0.1", 9612);
 		
-		server.start();
+		Thread t0 = new Thread(() -> {
+			client0.callAsync("/你好-某个人", new MessageA(), new ARPCClientCallback<MessageB>() {
+				@Override
+				public void onReceive(MessageB r) {
+					System.out.println("客户端0收到数据B 1:" + r.getB());
+				}});
+		});
+		
+		Thread t1 = new Thread(() -> {
+			MessageC c = client1.call("/你好-某个人-1", new MessageB(), MessageC.class);
+			System.out.println("客户端1收到数据C:" + c.getC());
+		});
+		Thread t2 = new Thread(() -> {
+			MessageB c0 = client0.call("/你好-某个人", new MessageA(), MessageB.class);
+			System.out.println("客户端0收到数据B 2:" + c0.getB());
+		});
+		
+		t0.start();
+		t1.start();
+		t2.start();
+		
 		try {
-			Thread.sleep(500);
+			Thread.sleep(3000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-//		
-//		
-//		Thread t0 = new Thread(() -> {
-//			client0.callAsync("/你好-徐熠", new MessageA(), new ARPCClientCallback<MessageB>() {
-//				@Override
-//				public void onReceive(MessageB r) {
-//					System.out.println("客户端0收到数据B 1:" + r.getB());
-//				}});
-//		});
-//		
-//		Thread t1 = new Thread(() -> {
-//			MessageC c = client1.call("/你好-徐熠-1", new MessageB(), MessageC.class);
-//			System.out.println("客户端1收到数据C:" + c.getC());
-//		});
-//		Thread t2 = new Thread(() -> {
-//			MessageB c0 = client0.call("/你好-徐熠", new MessageA(), MessageB.class);
-//			System.out.println("客户端0收到数据B 2:" + c0.getB());
-//		});
-//		
-//		t0.start();
-//		t1.start();
-//		t2.start();
 		
-		try {
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-//		client0.close();
-//		client1.close();
-		server.close();
+		client0.close();
+		client1.close();
+//		server.close();
 	}
 	
 	public static void serverGmsslTest() {

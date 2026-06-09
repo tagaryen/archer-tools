@@ -1,6 +1,7 @@
 package com.archer.tools.arpc;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Random;
 import java.util.function.Consumer;
 
 import com.archer.net.Bytes;
@@ -22,6 +23,7 @@ public class ARPCClient {
 	private ChannelContext ctx;
 	private Object activeLock = new Object();
 	private volatile boolean active = false;
+	private Random r = new Random();
 	
 	public ARPCClient(String host, int port) {
 		this(host, port, null);
@@ -80,8 +82,12 @@ public class ARPCClient {
 			@Override
 			public void onReceive(T r) {}
 			@Override
-			protected void handle(String text) {
-				super.setResponse(XJSONStatic.parse(text, clazz));
+			protected void handle(String text, RuntimeException e) {
+				if(e != null) {
+					setException(e);
+				} else {
+					setResponse(XJSONStatic.parse(text, clazz));
+				}
 				super.release();
 			}
 		};
@@ -93,8 +99,12 @@ public class ARPCClient {
 			@Override
 			public void onReceive(T r) {}
 			@Override
-			protected void handle(String text) {
-				super.setResponse(XJSONStatic.parse(text, type));
+			protected void handle(String text, RuntimeException e) {
+				if(e != null) {
+					setException(e);
+				} else {
+					setResponse(XJSONStatic.parse(text, type));
+				}
 				super.release();
 			}
 		};
@@ -102,27 +112,34 @@ public class ARPCClient {
 	}
 	
 	public <T> void callAsync(String url, Object data, ARPCClientCallback<T> callback) {
-		handler.addCallback(url, callback);
-		doSendAsync(url, data);
+		doSendAsync(url, data, callback);
 	}
 	
 	private <T> T call(String url, Object data, ARPCClientCallback<T> cb) {
-		this.handler.addCallback(url, cb);
-		doSendAsync(url, data);
+		doSendAsync(url, data, cb);
 		cb.await();
+		if(cb.getException() != null) {
+			throw cb.getException();
+		}
 		if(cb.getResponse() == null) {
 			throw new ARPCException("Can not get response");
 		}
 		return cb.getResponse();
 	}
 	
-	private void doSendAsync(String url, Object data) {
+	private void doSendAsync(String url, Object data, ARPCClientCallback<?> cb) {
 		doConnect();
+		byte[] nonce = new byte[16];
+		r.nextBytes(nonce);
 		byte[] uriBs = url.getBytes(StandardCharsets.UTF_8);
 		byte[] dataBs = XJSONStatic.stringify(data).getBytes(StandardCharsets.UTF_8);
-		int length = 2 + uriBs.length + dataBs.length;
+
+		this.handler.addCallback(nonce, cb);
+		
+		int length = 16 + 2 + uriBs.length + dataBs.length;
 		Bytes out = new Bytes(4 + length);
 		out.writeInt32(length);
+		out.write(nonce);
 		out.writeInt16(uriBs.length);
 		out.write(uriBs);
 		out.write(dataBs);

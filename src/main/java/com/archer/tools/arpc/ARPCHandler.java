@@ -39,7 +39,7 @@ abstract class ARPCHandler implements Handler {
 	@Override
 	public void onSslCertificate(ChannelContext ctx, byte[] cert) {}
 	
-	protected boolean check(byte[] uriBs) {
+	protected boolean isNotFound(byte[] uriBs) {
 		if(uriBs.length == NOT_FOUND_URI.length) {
 			for(int i = 0; i < NOT_FOUND_URI.length; i++) {
 				if(uriBs[i] != NOT_FOUND_URI[i]) {
@@ -47,14 +47,14 @@ abstract class ARPCHandler implements Handler {
 				}
 			}
 		}
-		
 		return true;
 	}
 	
-	protected void sendNotFound(ChannelContext ctx) {
-		int length = 2 + NOT_FOUND_URI.length;
+	protected void sendNotFound(ChannelContext ctx, byte[] nonce) {
+		int length = 16 + 2 + NOT_FOUND_URI.length;
 		Bytes out = new Bytes(4 + length);
 		out.writeInt32(length);
+		out.write(nonce);
 		out.writeInt16(NOT_FOUND_URI.length);
 		out.write(NOT_FOUND_URI);
 		ctx.toLastOnWrite(out.array());
