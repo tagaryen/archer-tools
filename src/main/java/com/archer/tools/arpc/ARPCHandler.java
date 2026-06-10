@@ -51,6 +51,17 @@ abstract class ARPCHandler implements Handler {
 		return true;
 	}
 	
+	protected boolean isParamErr(byte[] uriBs) {
+		if(uriBs.length == PARAM_ERR_URI.length) {
+			for(int i = 0; i < PARAM_ERR_URI.length; i++) {
+				if(uriBs[i] != PARAM_ERR_URI[i]) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
 	protected void sendNotFound(ChannelContext ctx, byte[] nonce) {
 		int length = 16 + 2 + NOT_FOUND_URI.length;
 		Bytes out = new Bytes(4 + length);

@@ -43,6 +43,8 @@ class ARPCClientHandler extends ARPCHandler {
 			} else {
 				if(isNotFound(uriBs)) {
 					cb.handle(null, new ARPCException("Server url Not found"));
+				} else if(isParamErr(uriBs)) {
+					cb.handle(null, new ARPCException("Server param error"));
 				} else {
 					cb.handle(new String(data.readAll(), StandardCharsets.UTF_8), null);
 				}
