@@ -197,25 +197,42 @@ System.out.println(nameCp);
     }});
 
     server.start();
+    try {
+        Thread.sleep(500);
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    }
 
-    client.registerListener(new ARPCClientListenner<MessageB, MessageC>(MessageB.class, MessageC.class));
-    client.registerListener(new ARPCClientListenner<MessageA, MessageB>(MessageA.class, MessageB.class));
-
-    client.callRemoteAsync(new MessageB(), new ARPCClientCallback<MessageC>() {
-        @Override
-        public void onReturn(MessageC r) {
-            System.out.println("client receive MessageC " + XJSONStatic.stringify(r));
+    ARPCClient client0 = new ARPCClient("127.0.0.1", 9612);
+    ARPCClient client1 = new ARPCClient("127.0.0.1", 9612);
+		
+    Thread t0 = new Thread(() -> {
+        client0.callAsync("/你好-某个人", new MessageA(), new ARPCClientCallback<MessageB>() {
+            @Override
+            public void onReceive(MessageB r) {
+                System.out.println("客户端0收到数据B 1:" + r.getB());
         }});
-    MessageB b = client.callRemote(new MessageA(), MessageB.class);
-    System.out.println("client receive MessageB " + XJSONStatic.stringify(b));
-
+    });
+		
+    Thread t1 = new Thread(() -> {
+        MessageC c = client1.call("/你好-某个人-1", new MessageB(), MessageC.class);
+        System.out.println("客户端1收到数据C:" + c.getC());
+    });
+    Thread t2 = new Thread(() -> {
+        MessageB c0 = client0.call("/你好-某个人", new MessageA(), MessageB.class);
+        System.out.println("客户端0收到数据B 2:" + c0.getB());
+    });
+		
+    t0.start();
+    t1.start();
+    t2.start();
     try {
         Thread.sleep(3000);
     } catch (InterruptedException e) {
         e.printStackTrace();
     }
-
-    client.close();
+    client0.close();
+    client1.close();
     server.close();
 ```  
 
