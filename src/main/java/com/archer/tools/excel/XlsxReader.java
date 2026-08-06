@@ -1,17 +1,17 @@
 package com.archer.tools.excel;
 
-import java.io.FileInputStream;
+import com.archer.tools.java.ArcherMap;
+
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 public class XlsxReader {
@@ -26,50 +26,59 @@ public class XlsxReader {
 	
 	public static List<Sheet> read(String path) throws IOException {
 		List<Sheet> sheets = new ArrayList<>(CAP);
-		Map<String, byte[]> sheetConetntMap = new TreeMap<>();
-		try(ZipFile zip = new ZipFile(path);
-			FileInputStream fIn = new FileInputStream(path)) {
-			try(ZipInputStream zipIn = new ZipInputStream(fIn, StandardCharsets.UTF_8)) {
-				ZipEntry entry;
-				byte[] strData = null;
-				while((entry = zipIn.getNextEntry()) != null) {
-					if(XL.equals(entry.getName())) {
-						InputStream entryStream = zip.getInputStream(entry);
-						strData = new byte[entryStream.available()];
-						entryStream.read(strData);
-					}
-					if(entry.getName().startsWith(SHEET_START) && 
-					   entry.getName().endsWith(SHEET_END)) {
-						byte[] sheetData = new byte[DEFAULT_SIZE];
-						InputStream entryStream = zip.getInputStream(entry);
-						int count = 0, off = 0;
-						while((count = entryStream.read(sheetData, off, sheetData.length - off)) > 0) {
-							off += count;
-							if(off >= sheetData.length) {
-								byte[] t = new byte[sheetData.length << 1];
-								System.arraycopy(sheetData, 0, t, 0, off);
-								sheetData = t;
-							}
-						}
-						
-						String sheetName = entry.getName()
-								.replace(SHEET_START, "")
-								.replace(SHEET_END, "");
-						sheetConetntMap.put(sheetName, Arrays.copyOfRange(sheetData, 0, off));
-						sheets.add(new Sheet(sheetName));
-					}
-				}
-				if(strData == null || sheets.size() == 0) {
-					throw new RuntimeException("parse failed.");
-				}
-				String[] strings = parseStrings(strData);
-				for(Sheet s: sheets) {
-					List<Row> result = 
-							parseSheet(sheetConetntMap.get(s.getName()), strings);
-					s.rows(result);
-				}
-			}
-		}
+		Map<String, byte[]> sheetConetntMap = new ArcherMap<>();
+        try(ZipInputStream zipIn = new ZipInputStream(Files.newInputStream(Paths.get(path)), StandardCharsets.UTF_8)) {
+            ZipEntry entry;
+            byte[] strData = null;
+            int off = 0, read = 0, strDataLen = 0;
+            while((entry = zipIn.getNextEntry()) != null) {
+                if(XL.equals(entry.getName())) {
+                    off = read = 0;
+                    strData = new byte[1024];
+                    while((read = zipIn.read(strData, off, strData.length - off)) >= 0) {
+                        off += read;
+                        if(off >= strData.length) {
+                            byte[] na = new byte[strData.length * 2];
+                            System.arraycopy(strData, 0, na, 0, strData.length);
+                            strData = na;
+                        }
+                    }
+                    strDataLen = off;
+                }
+                if(entry.getName().startsWith(SHEET_START) &&
+                        entry.getName().endsWith(SHEET_END)) {
+                    byte[] sheetData = new byte[DEFAULT_SIZE];
+                    off = read = 0;
+                    while((read = zipIn.read(sheetData, off, sheetData.length - off)) > 0) {
+                        off += read;
+                        if(off >= sheetData.length) {
+                            byte[] t = new byte[sheetData.length << 1];
+                            System.arraycopy(sheetData, 0, t, 0, off);
+                            sheetData = t;
+                        }
+                    }
+
+                    String sheetName = entry.getName()
+                            .replace(SHEET_START, "")
+                            .replace(SHEET_END, "");
+                    sheetConetntMap.put(sheetName, Arrays.copyOfRange(sheetData, 0, off));
+                    sheets.add(new Sheet(sheetName));
+                }
+            }
+            if(sheets.size() <= 0) {
+                throw new RuntimeException("parse failed.");
+            }
+            String[] strings = null;
+            if(strData != null) {
+                strings = parseStrings(strData, strDataLen);
+            }
+            for(Sheet s: sheets) {
+                List<Row> result =
+                        parseSheet(sheetConetntMap.get(s.getName()), strings);
+                s.rows(result);
+            }
+        }
+
 		return sheets;
 	}
 	
@@ -83,8 +92,8 @@ public class XlsxReader {
 	private static final char[] TS = {'<','t','>'};
 	private static final char[] TE = {'<','/','t','>'};
 	
-	private static String[] parseStrings(byte[] data) {
-		char[] chars = new String(data, StandardCharsets.UTF_8).toCharArray();
+	private static String[] parseStrings(byte[] data, int length) {
+		char[] chars = new String(data, 0, length, StandardCharsets.UTF_8).toCharArray();
 		int i = 0, state = 0, countStart = 0, count = 0;
 		for(; i < chars.length; i++) {
 			if(state < SST_S && i < chars.length - SST.length) {

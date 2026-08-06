@@ -16,12 +16,12 @@ public class ContainerUtil {
 		return !isEmpty(list);
 	}
 	
-	public static boolean isMapEmpty(Map<?, ?> map) {
+	public static boolean isEmpty(Map<?, ?> map) {
 		return map == null || map.isEmpty();
 	}
 	
-	public static boolean isMapNotEmpty(Map<?, ?> map) {
-		return !isMapEmpty(map);
+	public static boolean isNotEmpty(Map<?, ?> map) {
+		return !isEmpty(map);
 	}
 
 	public static <V, T> List<V> forEach(Collection<T> list, Function<? super T, ? extends V> trans) {
@@ -267,4 +267,17 @@ public class ContainerUtil {
 		}
 		return map;
 	}
+
+    public static <T> List<T> emptyList() {
+        return new ArcherList<>();
+    }
+
+    @SafeVarargs
+    public static <T> List<T> newList(T... es) {
+        return new ArcherList<>(es);
+    }
+
+    public static <T> List<T> newList(Collection<T> c) {
+        return new ArcherList<>(c);
+    }
 }

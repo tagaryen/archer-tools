@@ -5,7 +5,7 @@ maven:
     <dependency>  
         <groupId>io.github.tagaryen</groupId>  
         <artifactId>archer-tools</artifactId>  
-        <version>1.3.11</version>  
+        <version>1.3.12</version>  
     </dependency>  
 ```
 
