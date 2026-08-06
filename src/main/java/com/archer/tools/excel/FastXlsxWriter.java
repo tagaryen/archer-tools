@@ -123,7 +123,7 @@ public final class FastXlsxWriter {
                 zipOut.closeEntry();
             }
 
-            zipOut.putNextEntry(new ZipEntry("xl/_refs/workbook.xml.rels"));
+            zipOut.putNextEntry(new ZipEntry("xl/_rels/workbook.xml.rels"));
             content = Constant.ref.replace(Constant.refs, refSb.toString());
             zipOut.write(content.getBytes(StandardCharsets.UTF_8));
             zipOut.closeEntry();
