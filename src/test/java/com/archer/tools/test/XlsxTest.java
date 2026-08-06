@@ -42,19 +42,19 @@ public class XlsxTest {
     }
     public static void write() {
         List<List<String>> rows = Arrays.asList(
-                Arrays.asList("i", "徐熠", "大帅哥", "asncac", "hy"),
-                Arrays.asList("i", "徐熠", "大帅哥", "asncac", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy", "hy"),
-                Arrays.asList("i", "徐熠", "大帅哥", "asncac", "a"),
-                Arrays.asList("i", "徐熠", "大帅哥", "asncac"),
-                Arrays.asList("i", "徐熠", "大帅哥", "asncac", "asd", "adavsvefv")
+                Arrays.asList("i", "3", "你"),
+                Arrays.asList("j", "4", "哈"),
+                Arrays.asList("i", "5", "阿萨"),
+                Arrays.asList("j", "6", "发"),
+                Arrays.asList("i", "7", "去")
         );
         SimpleSheet sheet = new SimpleSheet("徐熠");
         sheet.rows(rows);
-//        try {
-//            FastXlsxWriter.saveAsXlsxFile(Arrays.asList(sheet), "e:/徐熠.xlsx");
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
+        try {
+            FastXlsxWriter.saveAsXlsxFile(Arrays.asList(sheet), "e:/test-w.xlsx");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
