@@ -27,7 +27,7 @@ public class XlsxTest {
 
     public static void writeBasic() {
         try {
-            byte[] data = Files.readAllBytes(Paths.get("E:/projects/excel-test/basic.zip"));
+            byte[] data = Files.readAllBytes(Paths.get("E:/excel/basic.zip"));
             String base64Str = Base64Util.encodeToString(data);
             String c = "";
             int i = 256;
@@ -35,7 +35,7 @@ public class XlsxTest {
                 c += "\"" + base64Str.substring(i - 256, i) + "\" + \n";
             }
             c += "\"" + base64Str.substring(i - 256) + "\" \n";
-            Files.write(Paths.get("e:/basic.txt"), c.getBytes());
+            Files.write(Paths.get("e:/excel/basic.txt"), c.getBytes());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -50,8 +50,14 @@ public class XlsxTest {
         );
         SimpleSheet sheet = new SimpleSheet("徐熠");
         sheet.rows(rows);
+        List<List<String>> rows2 = Arrays.asList(
+                Arrays.asList("fuck", "3", "你是大傻逼"),
+                Arrays.asList("asshole", "兼任", "哈")
+        );
+        SimpleSheet sheet2 = new SimpleSheet("sheet页2");
+        sheet2.rows(rows2);
         try {
-            FastXlsxWriter.saveAsXlsxFile(Arrays.asList(sheet), "e:/test-w.xlsx");
+            FastXlsxWriter.saveAsXlsxFile(Arrays.asList(sheet,sheet2), "e:/excel/test-w.xlsx");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

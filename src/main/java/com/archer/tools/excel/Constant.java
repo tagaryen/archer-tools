@@ -3,20 +3,10 @@ package com.archer.tools.excel;
 final class Constant {
 
     final static String sheetFormat = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-            "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\" mc:Ignorable=\"x14ac\">\n" +
-            "  <dimension ref=\"$(scale)\"/>\n" +
-            "  <sheetViews>\n" +
-            "    <sheetView tabSelected=\"1\" workbookViewId=\"0\"/>\n" +
-            "  </sheetViews>\n" +
-            "  <sheetFormatPr defaultRowHeight=\"15\" x14ac:dyDescent=\"0.25\"/>\n" +
-            "  $(sheetData)\n" +
-            "  $(phonetic)\n" +
-            "  <pageMargins left=\"0.7\" right=\"0.7\" top=\"0.75\" bottom=\"0.75\" header=\"0.3\" footer=\"0.3\"/>\n" +
-            "</worksheet>";
+            "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\" xmlns:x14ac=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac\" mc:Ignorable=\"x14ac\"><dimension ref=\"$(scale)\"/><sheetViews><sheetView tabSelected=\"1\" workbookViewId=\"0\"/></sheetViews><sheetFormatPr defaultRowHeight=\"15\" x14ac:dyDescent=\"0.25\"/>$(sheetData)<phoneticPr fontId=\"1\" type=\"noConversion\"/><pageMargins left=\"0.7\" right=\"0.7\" top=\"0.75\" bottom=\"0.75\" header=\"0.3\" footer=\"0.3\"/></worksheet>";
 
     final static String scale = "$(scale)";
     final static String sheetData = "$(sheetData)";
-    final static String phonetic = "$(phonetic)";
 
 
     final static String sharedStr = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
@@ -40,15 +30,12 @@ final class Constant {
             "06o8MNa0LoPavaa69oeI2pQHxqI2dAnUDkSFukVcKFIBNkGwuoITG5HiEI8RxSOIEvmBKwxNf2Hc2vpRSftRRR4Yu0PTkEDtwB32O26BptutBWlNNwByB43wJrjdq7q/kau5QfxJTUdFRp2sqvWGBGwHou5j5IKaldxvtScvXZWpVm5A7lE1wQQbTVvqGM6W4Ks7BVt4kJQjOoFrALZYzO/mueWG+aVEjvmdcepz0UXciQjD9oWEQeItsK9Q4sIS" +
             "lnq8Mq+xvR9IpVfq2n+tJLVqav/9Kq1VtqzwycXjMbZFurq4SVRf2AYYcq1KcfwZffzQGdgMJmPPGd1QhnTmX0DgbWZdD7xwRLgIXTL64S9jb9IVU5mfXNKWuqMgs3wublTQqYO+b/1kMrbD5aiztavSUoLCRyDWcsPpiisLvXY46f9ORxFb9nXkgFzuu9h5ySYu9UV82CLzWD/YP3b/klBU5lHIU9bcLiVsyqSEW2+WdpBL7ve2J5iKzaVJTUV1" +
             "y6nYAAZTseGGd/dT8ev3SqE4GywRW2+VdiDOPu95MstMXBefmUNxWJS5N7xIFoZXYSnrwpn9jApeXpbjm/DWxvp+yy/gT1Ut+4uLlJlPWuotzWwbVsW0SlrD7JWMqqGVGma7WmqbZlXvmbrW7VRur57dC8fVzcjAPryeovPvF6jD8swlanfxcuKgzdwyC98GlENweIlarxRfolbICGysVfrNarNTKzWr7X7J6HYapaZV65S6Nave7Xcts9Hs31aV" +
-            "62Fjo121jFqvUarpllUyahqMBRqU6kal0jbq7UbPaN9Wy0n5Qz0Wwsd6LSfhyDdQSwMEFAAAAAgAAAAhAKRTxc8/AQAACAQAABMAAABbQ29udGVudF9UeXBlc10ueG1srZPLbsIwEEX3lfoPlrdVbOiiqioCiz6WLQv6Aa49IRZ+yWMo/H2HhFYqQlBEN7GSuXfOdTweTdbesRVktDHUfCgGnEHQ0dgwr/n77KW65wyLCka5GKDmG0A+GV9fjWab" +
-            "BMjIHbDmbSnpQUrULXiFIiYIVGli9qrQa57LpPRCzUHeDgZ3UsdQIJSqbHvw8egJGrV0hT2v6XOfJINDzh57IbEIrVJyVqtCdbkKZo9S7QiCnJ0GW5vwhgRcHiRQ5Qhg53ujX5OtATZVubwqTyq5dvIz5sVHjAtBsvNSxqaxGkzUS08WgSmDMtgCFO9EtwqvbLg5ze/EKLtl+M9BfvqfyFHovKF/Xh6ha3MCiGXjAC9G/d5t3/QYmYzTHBPS5GY4" +
-            "n/49mlt3lTJVc7F/JFLr84F724Xt1BswB9iyu8fjL1BLAwQUAAAAAABPWgZdAAAAAAAAAAAAAAAABgAAAF9yZWxzL1BLAwQUAAAACAAAACEAtVUwI+sAAABMAgAACwAAAF9yZWxzLy5yZWxzjZLNSgQxDIDvgu9Qct/J7Aoisp29iLA3kfUBYpv5YWaa0ladfXuLIDqwP3Nsk3z5ErLdTeOgPjnETpyGdVGCYmfEdq7R8HZ4Xj2AiomcpUEcazhy" +
-            "hF11e7N95YFSLopt56PKFBc1tCn5R8RoWh4pFuLZ5UgtYaSUn6FBT6anhnFTlvcY/jOgmjHV3moIe3sH6nD0vIQtdd0ZfhLzMbJLJ1ogT4mdZbvyIdeH1HHMeAoNJw1WzEv+jkjeFxkNeNpos9zo/LQ4ciJLidBI4Is+PxmXhNbLha6vaJ7xZzMN+CWhfxfpf11wdgPVN1BLAQI/ABQAAAAAAPOYBl0AAAAAAAAAAAAAAAAJACQAAAAAAAAAEAAA" +
-            "AAAAAABkb2NQcm9wcy8KACAAAAAAAAEAGACCGQzKkyXdAQAAAAAAAAAAAAAAAAAAAABQSwECPwAUAAAACADxmAZdSwTKpTABAABZAgAAEQAkAAAAAAAAACAAAAAnAAAAZG9jUHJvcHMvY29yZS54bWwKACAAAAAAAAEAGADu/4zHkyXdAQAAAAAAAAAAAAAAAAAAAABQSwECPwAUAAAAAAAFmQZdAAAAAAAAAAAAAAAAAwAkAAAAAAAAABAAAACG" +
-            "AQAAeGwvCgAgAAAAAAABABgAQAd13JMl3QEAAAAAAAAAAAAAAAAAAAAAUEsBAj8AFAAAAAgAAAAhAM1EL/aqAgAAkwcAAA0AJAAAAAAAAAAgAAAApwEAAHhsL3N0eWxlcy54bWwKACAAAAAAAAEAGAAAQLLTXOeoAQAAAAAAAAAAAAAAAAAAAABQSwECPwAUAAAAAABPWgZdAAAAAAAAAAAAAAAACQAkAAAAAAAAABAAAAB8BAAAeGwvdGhlbWUv" +
-            "CgAgAAAAAAABABgACtupQFIl3QEAAAAAAAAAAAAAAAAAAAAAUEsBAj8AFAAAAAgAAAAhADqA3ZebBgAAYy4AABMAJAAAAAAAAAAgAAAAowQAAHhsL3RoZW1lL3RoZW1lMS54bWwKACAAAAAAAAEAGAAAQLLTXOeoAQAAAAAAAAAAAAAAAAAAAABQSwECPwAUAAAACAAAACEApFPFzz8BAAAIBAAAEwAkAAAAAAAAACAAAABvCwAAW0NvbnRlbnRf" +
-            "VHlwZXNdLnhtbAoAIAAAAAAAAQAYAABAstNc56gBAAAAAAAAAAAAAAAAAAAAAFBLAQI/ABQAAAAAAE9aBl0AAAAAAAAAAAAAAAAGACQAAAAAAAAAEAAAAN8MAABfcmVscy8KACAAAAAAAAEAGACYmK5AUiXdAQAAAAAAAAAAAAAAAAAAAABQSwECPwAUAAAACAAAACEAtVUwI+sAAABMAgAACwAkAAAAAAAAACAAAAADDQAAX3JlbHMvLnJlbHMK" +
-            "ACAAAAAAAAEAGAAAQLLTXOeoAQAAAAAAAAAAAAAAAAAAAABQSwUGAAAAAAkACQBMAwAAFw4AAAAA";
+            "62Fjo121jFqvUarpllUyahqMBRqU6kal0jbq7UbPaN9Wy0n5Qz0Wwsd6LSfhyDdQSwMEFAAAAAAAT1oGXQAAAAAAAAAAAAAAAAYAAABfcmVscy9QSwMEFAAAAAgAAAAhALVVMCPrAAAATAIAAAsAAABfcmVscy8ucmVsc42SzUoEMQyA74LvUHLfyewKIrKdvYiwN5H1AWKb+WFmmtJWnX17iyA6sD9zbJN8+RKy3U3joD45xE6chnVRgmJnxHau" +
+            "0fB2eF49gIqJnKVBHGs4coRddXuzfeWBUi6KbeejyhQXNbQp+UfEaFoeKRbi2eVILWGklJ+hQU+mp4ZxU5b3GP4zoJox1d5qCHt7B+pw9LyELXXdGX4S8zGySydaIE+JnWW78iHXh9RxzHgKDScNVsxL/o5I3hcZDXjaaLPc6Py0OHIiS4nQSOCLPj8Zl4TWy4Wur2ie8WczDfgloX8X6X9dcHYD1TdQSwECPwAUAAAAAADzmAZdAAAAAAAAAAAA" +
+            "AAAACQAkAAAAAAAAABAAAAAAAAAAZG9jUHJvcHMvCgAgAAAAAAABABgAghkMypMl3QEAAAAAAAAAAAAAAAAAAAAAUEsBAj8AFAAAAAgA8ZgGXUsEyqUwAQAAWQIAABEAJAAAAAAAAAAgAAAAJwAAAGRvY1Byb3BzL2NvcmUueG1sCgAgAAAAAAABABgA7v+Mx5Ml3QEAAAAAAAAAAAAAAAAAAAAAUEsBAj8AFAAAAAAABZkGXQAAAAAAAAAAAAAA" +
+            "AAMAJAAAAAAAAAAQAAAAhgEAAHhsLwoAIAAAAAAAAQAYAEAHddyTJd0BAAAAAAAAAAAAAAAAAAAAAFBLAQI/ABQAAAAIAAAAIQDNRC/2qgIAAJMHAAANACQAAAAAAAAAIAAAAKcBAAB4bC9zdHlsZXMueG1sCgAgAAAAAAABABgAAECy01znqAEAAAAAAAAAAAAAAAAAAAAAUEsBAj8AFAAAAAAAT1oGXQAAAAAAAAAAAAAAAAkAJAAAAAAAAAAQ" +
+            "AAAAfAQAAHhsL3RoZW1lLwoAIAAAAAAAAQAYAArbqUBSJd0BAAAAAAAAAAAAAAAAAAAAAFBLAQI/ABQAAAAIAAAAIQA6gN2XmwYAAGMuAAATACQAAAAAAAAAIAAAAKMEAAB4bC90aGVtZS90aGVtZTEueG1sCgAgAAAAAAABABgAAECy01znqAEAAAAAAAAAAAAAAAAAAAAAUEsBAj8AFAAAAAAAT1oGXQAAAAAAAAAAAAAAAAYAJAAAAAAAAAAQ" +
+            "AAAAbwsAAF9yZWxzLwoAIAAAAAAAAQAYAJiYrkBSJd0BAAAAAAAAAAAAAAAAAAAAAFBLAQI/ABQAAAAIAAAAIQC1VTAj6wAAAEwCAAALACQAAAAAAAAAIAAAAJMLAABfcmVscy8ucmVscwoAIAAAAAAAAQAYAABAstNc56gBAAAAAAAAAAAAAAAAAAAAAFBLBQYAAAAACAAIAOcCAACnDAAAAAA=";
 
 
     final static String ref = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
@@ -61,6 +48,13 @@ final class Constant {
     final static String sheets = "$(sheets)";
 
     final static String app = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-            "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\"><Application>Microsoft Excel</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><HeadingPairs><vt:vector size=\"2\" baseType=\"variant\"><vt:variant><vt:lpstr>工作表</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs><TitlesOfParts>$(appSheets)</TitlesOfParts><Company></Company><LinksUpToDate>false</LinksUpToDate><SharedDoc>false</SharedDoc><HyperlinksChanged>false</HyperlinksChanged><AppVersion>16.0300</AppVersion></Properties>";
+            "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\"><Application>Microsoft Excel</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><HeadingPairs><vt:vector size=\"2\" baseType=\"variant\"><vt:variant><vt:lpstr>工作表</vt:lpstr></vt:variant><vt:variant><vt:i4>1</vt:i4></vt:variant></vt:vector></HeadingPairs><TitlesOfParts><vt:vector size=\"$(sheetSize)\" baseType=\"lpstr\">$(appSheets)</vt:vector></TitlesOfParts><Company></Company><LinksUpToDate>false</LinksUpToDate><SharedDoc>false</SharedDoc><HyperlinksChanged>false</HyperlinksChanged><AppVersion>16.0300</AppVersion></Properties>";
     final static String appSheets = "$(appSheets)";
+    final static String sheetSize = "$(sheetSize)";
+
+
+    final static String contentTypeXml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
+            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/><Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/><Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/><Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/>$(xmls)</Types>";
+    final static String xmls = "$(xmls)";
+
 }

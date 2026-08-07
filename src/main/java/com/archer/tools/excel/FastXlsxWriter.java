@@ -1,24 +1,20 @@
 package com.archer.tools.excel;
 
-import com.archer.tools.java.ArcherList;
-import com.archer.tools.java.Base64Util;
-import com.archer.tools.java.StringUtil;
+import com.archer.tools.java.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-public final class FastXlsxWriter {
+public class FastXlsxWriter {
     private static final String rowFormat1 = "<row r=\"";
     private static final String rowFormat2 = "\" spans=\"1:";
     private static final String rowFormat3 = "\" x14ac:dyDescent=\"0.25\">";
     private static final String rowFormat4 = "</row>";
-    private static final String sheetTail = "<phoneticPr fontId=\"1\" type=\"noConversion\"/>";
 
     private static void convertToXlsxData(List<SimpleSheet> srcSheets, OutputStream os) throws IOException {
         List<SimpleSheet> sheets = new ArcherList<>();
@@ -35,7 +31,6 @@ public final class FastXlsxWriter {
         try(ZipInputStream zipIn = new ZipInputStream(new ByteArrayInputStream(data)); ZipOutputStream zipOut = new ZipOutputStream(os)) {
             ZipEntry entry;
             while((entry = zipIn.getNextEntry()) != null) {
-                zipOut.putNextEntry(entry);
                 off = read = 0;
                 buf = new byte[1024];
                 while((read = zipIn.read(buf, off, buf.length - off)) >= 0) {
@@ -46,6 +41,7 @@ public final class FastXlsxWriter {
                         buf = na;
                     }
                 }
+                zipOut.putNextEntry(new ZipEntry(entry.getName()));
                 zipOut.write(buf, 0, off);
                 zipOut.closeEntry();
             }
@@ -54,55 +50,47 @@ public final class FastXlsxWriter {
             StringBuilder refSb = new StringBuilder(sheets.size() * 128);
             StringBuilder wbSb = new StringBuilder(sheets.size() * 128);
             StringBuilder appSb = new StringBuilder(sheets.size() * 128);
+            StringBuilder xmlsSb = new StringBuilder(sheets.size() * 256);
             for(SimpleSheet sheet: sheets) {
+                if(ContainerUtil.isEmpty(sheet.rows())) {
+                    sheet.rows(Collections.singletonList(new ArcherList<>()));
+                }
                 ++sheetIdx;
                 refSb.append("<Relationship Id=\"rId"+(2+sheetIdx)+"\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet" + sheetIdx + ".xml\"/>");
-                wbSb.append("<sheet name=\""+sheet.getName()+"\" sheetId=\"1\" r:id=\"rId"+(2+sheetIdx)+"\"/>");
-                appSb.append("<vt:vector size=\"1\" baseType=\"lpstr\"><vt:lpstr>"+sheet.getName()+"</vt:lpstr></vt:vector>");
+                wbSb.append("<sheet name=\""+sheet.getName()+"\" sheetId=\""+sheetIdx+"\" r:id=\"rId"+(2+sheetIdx)+"\"/>");
+                appSb.append("<vt:lpstr>"+sheet.getName()+"</vt:lpstr>");
+                xmlsSb.append("<Override PartName=\"/xl/worksheets/sheet"+ sheetIdx +".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
 
                 zipOut.putNextEntry(new ZipEntry("xl/worksheets/sheet" + sheetIdx + ".xml"));
-                StringBuilder sb = new StringBuilder(10 * 1024 * 1024);
-                int r = 1, c = 0, t = 0, maxRow = sheet.rows().size(), maxCell = 1;
-                for(List<String> row: sheet.rows()) {
-                    if(maxCell < row.size()) {
-                        maxCell = row.size();
-                    }
-                }
-                String cellName = "";
+                Pair<Integer, String> maxCells = getMaxCellAndName(sheet);
+                int r = 1, c = 0, maxRow = sheet.rows().size(), maxCell = maxCells.getFirst();
+                String cellName = "", maxCellName = maxCells.getSecond();
+                StringBuilder sb = new StringBuilder(sheet.rows().size() * maxCell * 48);
                 for(List<String> row: sheet.rows()) {
                     c = 0;
+                    if(ContainerUtil.isEmpty(row)) {
+                        continue ;
+                    }
                     sb.append(rowFormat1).append(r).append(rowFormat2).append(maxCell).append(rowFormat3);
                     for(String cell: row) {
-                        t = c;
-                        cellName = "";
-                        while((t / 26) > 0) {
-                            cellName = (char)('A' + (t % 26)) + cellName;
-                            t = t / 26 - 1;
-                        }
-                        cellName = (char)('A' + (t % 26)) + cellName;
+                        cellName = getCellName(c);
                         if(StringUtil.isEmpty(cell) || StringUtil.isNumber(cell)) {
-                            sb.append("<c r=\""+cellName+"\"><v>"+cell+"</v></c>");
+                            sb.append("<c r=\""+cellName+r+"\"><v>"+cell+"</v></c>");
                         } else {
                             sharedCount++;
-                            sb.append(getCellStr(cell, cellName + r, vc));
+                            sb.append(getCellIndexStr(cell, cellName + r, vc));
                         }
                         c++;
                     }
                     sb.append(rowFormat4);
                     r++;
                 }
-                String maxCellName = "";
-                while((maxCell / 26) > 0) {
-                    maxCellName = (char)('A' + (maxCell % 26)) + maxCellName;
-                    maxCell = maxCell / 26 - 1;
-                }
-                maxCellName = (char)('A' + (maxCell % 26 - 1)) + maxCellName;
-                content = Constant.sheetFormat.replace(Constant.scale, "A1:" + maxCellName + maxRow);
                 if(sb.length() == 0) {
+                    content = Constant.sheetFormat.replace(Constant.scale, "A1");
                     content = content.replace(Constant.sheetData, "<sheetData/>");
                 } else {
+                    content = Constant.sheetFormat.replace(Constant.scale, "A1:" + maxCellName + maxRow);
                     content = content.replace(Constant.sheetData, "<sheetData>" + sb.toString() +  "</sheetData>");
-                    content = content.replace(Constant.phonetic, sheetTail);
                 }
                 zipOut.write(content.getBytes(StandardCharsets.UTF_8));
                 zipOut.closeEntry();
@@ -110,6 +98,7 @@ public final class FastXlsxWriter {
 
             if(!vc.isEmpty()) {
                 refSb.append("<Relationship Id=\"rId"+(3+sheetIdx)+"\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.xml\"/>");
+                xmlsSb.append("<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>");
 
                 zipOut.putNextEntry(new ZipEntry("xl/sharedStrings.xml"));
                 StringBuilder strobe = new StringBuilder(1024 * 1024);
@@ -133,15 +122,44 @@ public final class FastXlsxWriter {
             zipOut.write(content.getBytes(StandardCharsets.UTF_8));
             zipOut.closeEntry();
 
-
             zipOut.putNextEntry(new ZipEntry("docProps/app.xml"));
             content = Constant.app.replace(Constant.appSheets, appSb.toString());
+            content = content.replace(Constant.sheetSize, sheets.size()+"");
+            zipOut.write(content.getBytes(StandardCharsets.UTF_8));
+            zipOut.closeEntry();
+
+            zipOut.putNextEntry(new ZipEntry("[Content_Types].xml"));
+            content = Constant.contentTypeXml.replace(Constant.xmls, xmlsSb.toString());
             zipOut.write(content.getBytes(StandardCharsets.UTF_8));
             zipOut.closeEntry();
         }
     }
 
-    private static String getCellStr(String v, String cellName, List<String> vc) {
+    private static Pair<Integer, String> getMaxCellAndName(SimpleSheet sheet) {
+        int maxCell = 1;
+        for(List<String> row: sheet.rows())
+            if(maxCell < row.size())
+                maxCell = row.size();
+        String maxCellName = "";
+        while((maxCell / 26) > 0) {
+            maxCellName = (char)('A' + (maxCell % 26)) + maxCellName;
+            maxCell = maxCell / 26 - 1;
+        }
+        maxCellName = (char)('A' + (maxCell % 26 - 1)) + maxCellName;
+        return new Pair<>(maxCell, maxCellName);
+    }
+
+    private static String getCellName(int t) {
+        String cellName = "";
+        while((t / 26) > 0) {
+            cellName = (char)('A' + (t % 26)) + cellName;
+            t = t / 26 - 1;
+        }
+        cellName = (char)('A' + (t % 26)) + cellName;
+        return cellName;
+    }
+
+    private static String getCellIndexStr(String v, String cellName, List<String> vc) {
         int idx = 0;
         for(String c: vc) {
             if(c.equals(v)) {
@@ -155,10 +173,10 @@ public final class FastXlsxWriter {
         return "<c r=\""+cellName+"\" t=\"s\"><v>"+idx+"</v></c>";
     }
 
-    public static ByteArrayOutputStream saveAsXlsxStream(List<SimpleSheet> sheets) throws IOException {
+    public static byte[] saveAsXlsxBytes(List<SimpleSheet> sheets) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         convertToXlsxData(sheets, out);
-        return out;
+        return out.toByteArray();
     }
 
     public static void saveAsXlsxFile(List<SimpleSheet> sheets, String dstPath) throws IOException {
