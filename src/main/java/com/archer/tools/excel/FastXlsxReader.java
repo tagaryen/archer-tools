@@ -1,17 +1,14 @@
 package com.archer.tools.excel;
 
 import com.archer.tools.java.ArcherList;
-import com.archer.tools.java.ArcherMap;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -27,7 +24,7 @@ public class FastXlsxReader {
 	public static List<SimpleSheet> read(String path) throws IOException {
 		List<SimpleSheet> sheets = new ArcherList<>(CAP);
         List<byte[]> sheetDataList = new ArcherList<>(CAP);
-        List<Integer> sheetIdxList = new ArcherList<>(CAP);
+        int[] sheetIdxMap = new int[48];
         try(ZipInputStream zipIn = new ZipInputStream(Files.newInputStream(Paths.get(path)), StandardCharsets.UTF_8)) {
             ZipEntry entry;
             byte[] strData = null, appSheets = null;
@@ -75,8 +72,8 @@ public class FastXlsxReader {
                     String sheetIdx = entry.getName()
                             .replace(SHEET_START, "")
                             .replace(SHEET_END, "");
+                    sheetIdxMap[sheetDataList.size()] = Integer.parseInt(sheetIdx);
                     sheetDataList.add(Arrays.copyOfRange(sheetData, 0, off));
-                    sheetIdxList.add(Integer.parseInt(sheetIdx));
                 }
             }
 
@@ -92,10 +89,11 @@ public class FastXlsxReader {
             for(int i = 0; i < sheetDataList.size(); i++) {
                 List<List<String>> rows =
                         parseSheet(sheetDataList.get(i), strings);
-                if(i >= sheetNameList.size()) {
-                    sheetName = "Sheet" + (i+1);
+                int idx = sheetIdxMap[i];
+                if(idx > sheetNameList.size()) {
+                    sheetName = "Sheet" + idx;
                 } else {
-                    sheetName = sheetNameList.get(i);
+                    sheetName = sheetNameList.get(idx-1);
                 }
                 sheets.add(new SimpleSheet(sheetName, rows));
             }

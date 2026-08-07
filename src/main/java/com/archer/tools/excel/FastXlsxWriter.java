@@ -74,7 +74,9 @@ public class FastXlsxWriter {
                     sb.append(rowFormat1).append(r).append(rowFormat2).append(maxCell).append(rowFormat3);
                     for(String cell: row) {
                         cellName = getCellName(c);
-                        if(StringUtil.isEmpty(cell) || StringUtil.isNumber(cell)) {
+                        if(StringUtil.isEmpty(cell)) {
+                            sb.append("<c r=\""+cellName+r+"\"><v></v></c>");
+                        } else if(StringUtil.isNumber(cell)) {
                             sb.append("<c r=\""+cellName+r+"\"><v>"+cell+"</v></c>");
                         } else {
                             sharedCount++;

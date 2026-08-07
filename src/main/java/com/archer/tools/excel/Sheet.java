@@ -11,6 +11,11 @@ public class Sheet {
 	public Sheet(String name) {
 		this.name = name;
 	}
+
+    public Sheet(String name, List<Row> rows) {
+        this.name = name;
+        this.rows = rows;
+    }
 	
 	public String getName() {
 		return name;

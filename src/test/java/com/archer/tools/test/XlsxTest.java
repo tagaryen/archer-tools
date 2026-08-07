@@ -32,9 +32,9 @@ public class XlsxTest {
     public static void write() {
         List<List<String>> rows = Arrays.asList(
                 Arrays.asList("i", "3", "你"),
-                Arrays.asList("j", "4", "哈"),
+                Arrays.asList("j", "4", null),
                 Arrays.asList("i", "5", "阿萨"),
-                Arrays.asList("j", "6", "发"),
+                Arrays.asList("j", null, "发"),
                 Arrays.asList("i", "7", "去")
         );
         SimpleSheet sheet = new SimpleSheet("徐熠");
