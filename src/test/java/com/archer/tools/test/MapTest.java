@@ -1,5 +1,6 @@
 package com.archer.tools.test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,19 +11,16 @@ import com.archer.tools.java.ArcherMap;
 public class MapTest {
 
 	static void testArcherMap() {
-		Map<String, String> map = new ArcherMap<>();
-        String s = null;
+        ArcherMap<String, String> map = new ArcherMap<>();
 		long t1 = System.currentTimeMillis();
 		for(int i = 1; i < 100001; i++) {
-            s = map.get("xuyi99998");
-			if(i % 13 == 0) {
+			if(i % 7 == 0) {
 				map.clear();
 			}
 			map.put("xuyi" + i, "haoshuai" + i);
 		}
 
 		System.out.println("archerMap cost = " + (System.currentTimeMillis() - t1));
-        System.out.println("s: " + s);
         List<String> l = new ArcherList<>(map.values());
         l.add("xuyihaoshuai");
         l.set(2, "xuyihao2");
@@ -40,24 +38,55 @@ public class MapTest {
 	}
 	
 	static void testHashMap() {
-		Map<String, String> map = new HashMap<>();
-        String s = null;
+        HashMap<String, String> map = new HashMap<>();
         long t1 = System.currentTimeMillis();
         for(int i = 1; i < 100001; i++) {
-            s = map.get("xuyi99998");
-			if(i % 13 == 0) {
+			if(i % 7 == 0) {
 				map.clear();
 			}
 			map.put("xuyi" + i, "haoshuai" + i);
 		}
 		System.out.println("hashMap cost = " + (System.currentTimeMillis() - t1));
-        System.out.println("s: " + s);
 		System.out.println("hashMap get = " + map.getOrDefault("xuyi100000", "none"));
 		
 	}
+
+
+    static void testArcherList() {
+        List<String> l = new ArcherList<>();
+        long t1 = System.currentTimeMillis();
+        for(int i = 1; i < 100001; i++) {
+            if(i % 13 == 0) {
+                l.clear();
+            }
+            l.add("haoshuai" + i);
+        }
+
+        System.out.println("archerList cost = " + (System.currentTimeMillis() - t1));
+        System.out.println(l);
+    }
+
+    static void testArrayList() {
+        List<String> l = new ArrayList<>();
+        String s = null;
+        long t1 = System.currentTimeMillis();
+        for(int i = 1; i < 100001; i++) {
+            if(i % 13 == 0) {
+                l.clear();
+            }
+            l.add("haoshuai" + i);
+        }
+        System.out.println("arrayList cost = " + (System.currentTimeMillis() - t1));
+        System.out.println("arrayList get = " + l.get(1) + "; " + l.get(2));
+
+    }
 	
 	public static void main(String args[]) {
+        testArcherList();
 		testHashMap();
 		testArcherMap();
+
+//        testArrayList();
+//        testArcherList();
 	}
 }

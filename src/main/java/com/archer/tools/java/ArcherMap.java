@@ -147,6 +147,19 @@ public class ArcherMap<K, V> implements Map<K, V> {
 		return new PairSet<K, V>((K[])Arrays.copyOfRange(keys, 0, size), (V[])Arrays.copyOfRange(vals, 0, size));
 	}
 
+    public String toString() {
+        StringBuilder sb = new StringBuilder(size * 32);
+        sb.append('{');
+        if(size > 0) {
+            sb.append('"').append(keys[0]).append("\":\"").append(vals[0]).append("\"");
+        }
+        for(int i = 1; i < size; i++) {
+            sb.append(", \"").append(keys[i]).append("\":\"").append(vals[i]).append("\",");
+        }
+        sb.append('}');
+        return sb.toString();
+    }
+
 	@SuppressWarnings("hiding")
 	final class KeySet<K> implements Set<K> {
 

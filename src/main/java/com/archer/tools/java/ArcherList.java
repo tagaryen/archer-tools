@@ -1,9 +1,6 @@
 package com.archer.tools.java;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 
 public class ArcherList<E> implements List<E> {
 
@@ -81,7 +78,7 @@ public class ArcherList<E> implements List<E> {
 
     @Override
     public boolean add(E e) {
-        if(size >= data.length) {
+        if(size == data.length) {
             Object[] nd = new Object[data.length * 2];
             System.arraycopy(data, 0, nd, 0, data.length);
             data = nd;
@@ -357,6 +354,10 @@ public class ArcherList<E> implements List<E> {
         Object[] nd = new Object[nSize];
         System.arraycopy(data, fromIndex, nd, 0, toIndex - fromIndex);
         return new ArcherList<E>(nd, nSize);
+    }
+
+    public String toString() {
+        return Arrays.toString(Arrays.copyOf(data, size));
     }
 
     private void checkNull() {
