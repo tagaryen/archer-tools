@@ -1,5 +1,6 @@
 package com.archer.tools.excel;
 
+import com.archer.tools.java.ArcherList;
 import com.archer.tools.java.ArcherMap;
 
 import java.io.IOException;
@@ -16,23 +17,38 @@ import java.util.zip.ZipInputStream;
 
 public class FastXlsxReader {
 	private static final String XL = "xl/sharedStrings.xml";
-	private static final String SHEET_START = "xl/worksheets/";
+    private static final String PROP_APP = "docProps/app.xml";
+	private static final String SHEET_START = "xl/worksheets/sheet";
 	private static final String SHEET_END = ".xml";
 
 	private static final int DEFAULT_SIZE = 10 * 1024 * 1024;
 	private static final int CAP = 5;
 	
 	public static List<SimpleSheet> read(String path) throws IOException {
-		List<SimpleSheet> sheets = new ArrayList<>(CAP);
-		Map<String, byte[]> sheetConetntMap = new ArcherMap<>();
+		List<SimpleSheet> sheets = new ArcherList<>(CAP);
+        List<byte[]> sheetDataList = new ArcherList<>(CAP);
+        List<Integer> sheetIdxList = new ArcherList<>(CAP);
         try(ZipInputStream zipIn = new ZipInputStream(Files.newInputStream(Paths.get(path)), StandardCharsets.UTF_8)) {
             ZipEntry entry;
-            byte[] strData = null;
-            int off = 0, read = 0, strDataLen = 0;
+            byte[] strData = null, appSheets = null;
+            int off = 0, read = 0, strDataLen = 0, appSheetsLen = 0;
             while((entry = zipIn.getNextEntry()) != null) {
+                if(PROP_APP.equals(entry.getName())) {
+                    off = read = 0;
+                    appSheets = new byte[2 * 1024];
+                    while((read = zipIn.read(appSheets, off, appSheets.length - off)) >= 0) {
+                        off += read;
+                        if(off >= appSheets.length) {
+                            byte[] na = new byte[appSheets.length * 2];
+                            System.arraycopy(appSheets, 0, na, 0, appSheets.length);
+                            appSheets = na;
+                        }
+                    }
+                    appSheetsLen = off;
+                }
                 if(XL.equals(entry.getName())) {
                     off = read = 0;
-                    strData = new byte[1024];
+                    strData = new byte[2 * 1024];
                     while((read = zipIn.read(strData, off, strData.length - off)) >= 0) {
                         off += read;
                         if(off >= strData.length) {
@@ -56,27 +72,34 @@ public class FastXlsxReader {
                         }
                     }
 
-                    String sheetName = entry.getName()
+                    String sheetIdx = entry.getName()
                             .replace(SHEET_START, "")
                             .replace(SHEET_END, "");
-                    sheetConetntMap.put(sheetName, Arrays.copyOfRange(sheetData, 0, off));
-                    sheets.add(new SimpleSheet(sheetName));
+                    sheetDataList.add(Arrays.copyOfRange(sheetData, 0, off));
+                    sheetIdxList.add(Integer.parseInt(sheetIdx));
                 }
             }
-            if(sheets.size() <= 0) {
-                throw new RuntimeException("parse failed.");
+
+            List<String> sheetNameList = parseSheetNames(appSheets, appSheetsLen);
+            if(sheetDataList.isEmpty()) {
+                throw new RuntimeException("Parse failed.");
             }
             String[] strings = null;
             if(strData != null) {
                 strings = parseStrings(strData, strDataLen);
             }
-            for(SimpleSheet s: sheets) {
-                List<List<String>> result =
-                        parseSheet(sheetConetntMap.get(s.getName()), strings);
-                s.rows(result);
+            String sheetName;
+            for(int i = 0; i < sheetDataList.size(); i++) {
+                List<List<String>> rows =
+                        parseSheet(sheetDataList.get(i), strings);
+                if(i >= sheetNameList.size()) {
+                    sheetName = "Sheet" + (i+1);
+                } else {
+                    sheetName = sheetNameList.get(i);
+                }
+                sheets.add(new SimpleSheet(sheetName, rows));
             }
         }
-
 		return sheets;
 	}
 	
@@ -89,9 +112,26 @@ public class FastXlsxReader {
 	private static final char[] COUNT = {'c','o','u','n','t','=','"'};
 	private static final char[] TS = {'<','t','>'};
 	private static final char[] TE = {'<','/','t','>'};
-	
-	private static String[] parseStrings(byte[] data, int strDataLen) {
-		char[] chars = new String(data, 0, strDataLen, StandardCharsets.UTF_8).toCharArray();
+
+    private static List<String> parseSheetNames(byte[] data, int off) {
+        List<String> sheetNames = new ArcherList<>(CAP);
+        String sheetNameXml = new String(data, 0, off, StandardCharsets.UTF_8);
+        int start = 0, end = sheetNameXml.indexOf("<TitlesOfParts>");
+        if(end < 0) {
+            return sheetNames;
+        }
+        while((start = sheetNameXml.indexOf("<vt:lpstr>", end + 11)) >= 0) {
+            end = sheetNameXml.indexOf("</vt:lpstr>", start + 10);
+            if(end < 0) {
+                break;
+            }
+            sheetNames.add(sheetNameXml.substring(start + 10, end));
+        }
+        return sheetNames;
+    }
+
+	private static String[] parseStrings(byte[] data, int off) {
+		char[] chars = new String(data, 0, off, StandardCharsets.UTF_8).toCharArray();
 		int i = 0, state = 0, countStart = 0, count = 0;
 		for(; i < chars.length; i++) {
 			if(state < SST_S && i < chars.length - SST.length) {

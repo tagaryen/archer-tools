@@ -13,17 +13,6 @@ import java.util.List;
 
 public class XlsxTest {
 
-    public static void readXlsx() {
-        List<SimpleSheet> datas = null;
-        try {
-            datas = FastXlsxReader.read("E:/projects/excel-test/smalldata.xlsx");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        SimpleSheet sheet = datas.get(0);
-        System.out.println(sheet.rows().get(4).get(5));
-    }
-
 
     public static void writeBasic() {
         try {
@@ -63,10 +52,27 @@ public class XlsxTest {
         }
     }
 
+    public static void readXlsx() {
+        List<SimpleSheet> datas = null;
+        try {
+            datas = FastXlsxReader.read("e:/excel/test-w.xlsx");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println(datas.get(0).getName());
+        System.out.println(datas.get(1).getName());
+        System.out.println(datas.get(1).rows().get(0).get(2));
+        try {
+            byte[] bs = FastXlsxWriter.saveAsXlsxBytes(datas);
+            Files.write(Paths.get("e:/excel/test-w-c.xlsx"), bs);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static void main(String[] args) {
-//        readXlsx();
         write();
+        readXlsx();
 //        writeBasic();
     }
 }

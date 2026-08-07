@@ -12,6 +12,11 @@ public class SimpleSheet {
 	public SimpleSheet(String name) {
 		this.name = name;
 	}
+
+    public SimpleSheet(String name, List<List<String>> rows) {
+        this.name = name;
+        this.rows = rows;
+    }
 	
 	public String getName() {
 		return name;
@@ -21,8 +26,8 @@ public class SimpleSheet {
 		return rows;
 	}
 
-	public SimpleSheet rows(List<List<String>> cells) {
-		this.rows = cells;
+	public SimpleSheet rows(List<List<String>> rows) {
+		this.rows = rows;
 		return this;
 	}
 }
