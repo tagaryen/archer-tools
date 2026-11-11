@@ -13,19 +13,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 
-/**
- * High performance csv writer with low memory footprint.
- * <p>
- * Usage:
- * <pre>
- * try(CSVWriter w = CSVWriter.to("a.csv")) {
- *     w.writeHeader("id", "name");
- *     w.writeRow(1, "tom");
- * }
- * </pre>
- * Data is encoded and flushed through an internal 64KB buffer,
- * so heap usage stays constant no matter how large the output is.
- */
+
 public class CSVWriter implements Closeable, Flushable {
 
     private static final int BUF_SIZE = 1 << 16;

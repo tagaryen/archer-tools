@@ -13,25 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * High performance csv reader with low memory footprint.
- * <p>
- * Parsing works directly on an internal 64KB byte buffer:
- * delimiter scanning is done on raw bytes which is safe for utf8
- * (all multi-byte chars use bytes &gt;= 0x80), and plain fields are
- * turned into strings straight from the buffer without any copy.
- * <p>
- * Usage:
- * <pre>
- * try(CSVReader r = CSVReader.open("a.csv")) {
- *     String[] row;
- *     while((row = r.readRow()) != null) {
- *         // process row
- *     }
- * }
- * </pre>
- * Heap usage stays constant no matter how large the file is.
- */
+
 public class CSVReader implements Closeable {
 
     @FunctionalInterface
