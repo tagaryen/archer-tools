@@ -591,13 +591,14 @@ public class AttributeInfo {
 	        } else if (frameType >= 64 && frameType <= 127) {        // same_locals_1_stack_item_frame
 	        	writeVerificationTypeInfo(data, 0);
 	        } else if (frameType == 247) {                           // same_locals_1_stack_item_frame_extended
-	        	writeVerificationTypeInfo(data, 0);
-	        } else if (frameType >= 248 && frameType <= 250) {       // chop_frame
-	            offsetDelta = 251 - frameType;                       // 隐含偏移增量
-	            //no more data
-	        } else if (frameType == 251) {                           // same_frame_extended
-	            offsetDelta = data.readInt16();
-	            //no more data
+        	data.writeInt16(offsetDelta);
+        	writeVerificationTypeInfo(data, 0);
+        } else if (frameType >= 248 && frameType <= 250) {       // chop_frame
+            offsetDelta = 251 - frameType;                       // 隐含偏移增量
+            //no more data
+        } else if (frameType == 251) {                           // same_frame_extended
+        	data.writeInt16(offsetDelta);
+            //no more data
 	        } else if (frameType >= 252 && frameType <= 254) {       // append_frame
 	        	data.writeInt16(offsetDelta);
 	            int k = frameType - 251;                             // 新增的局部变量个数

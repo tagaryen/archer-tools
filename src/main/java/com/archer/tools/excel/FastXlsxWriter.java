@@ -5,7 +5,9 @@ import com.archer.tools.java.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -45,7 +47,7 @@ public class FastXlsxWriter {
                 zipOut.write(buf, 0, off);
                 zipOut.closeEntry();
             }
-            List<String> vc = new ArcherList<>(256);
+            Map<String, Integer> vc = new LinkedHashMap<>(256);
             int sheetIdx = 0, sharedCount = 0;
             StringBuilder refSb = new StringBuilder(sheets.size() * 128);
             StringBuilder wbSb = new StringBuilder(sheets.size() * 128);
@@ -57,8 +59,8 @@ public class FastXlsxWriter {
                 }
                 ++sheetIdx;
                 refSb.append("<Relationship Id=\"rId"+(2+sheetIdx)+"\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet" + sheetIdx + ".xml\"/>");
-                wbSb.append("<sheet name=\""+sheet.getName()+"\" sheetId=\""+sheetIdx+"\" r:id=\"rId"+(2+sheetIdx)+"\"/>");
-                appSb.append("<vt:lpstr>"+sheet.getName()+"</vt:lpstr>");
+                wbSb.append("<sheet name=\""+escapeXml(sheet.getName())+"\" sheetId=\""+sheetIdx+"\" r:id=\"rId"+(2+sheetIdx)+"\"/>");
+                appSb.append("<vt:lpstr>"+escapeXml(sheet.getName())+"</vt:lpstr>");
                 xmlsSb.append("<Override PartName=\"/xl/worksheets/sheet"+ sheetIdx +".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
 
                 zipOut.putNextEntry(new ZipEntry("xl/worksheets/sheet" + sheetIdx + ".xml"));
@@ -69,6 +71,7 @@ public class FastXlsxWriter {
                 for(List<String> row: sheet.rows()) {
                     c = 0;
                     if(ContainerUtil.isEmpty(row)) {
+                        r++;
                         continue ;
                     }
                     sb.append(rowFormat1).append(r).append(rowFormat2).append(maxCell).append(rowFormat3);
@@ -104,8 +107,8 @@ public class FastXlsxWriter {
 
                 zipOut.putNextEntry(new ZipEntry("xl/sharedStrings.xml"));
                 StringBuilder strobe = new StringBuilder(1024 * 1024);
-                for(String v: vc) {
-                    strobe.append("<si><t>").append(v).append("</t><phoneticPr fontId=\"1\" type=\"noConversion\"/></si>");
+                for(String v: vc.keySet()) {
+                    strobe.append("<si><t>").append(escapeXml(v)).append("</t><phoneticPr fontId=\"1\" type=\"noConversion\"/></si>");
                 }
                 content = Constant.sharedStr.replace(Constant.strings, strobe.toString());
                 content = content.replace(Constant.count, sharedCount+"");
@@ -161,18 +164,41 @@ public class FastXlsxWriter {
         return cellName;
     }
 
-    private static String getCellIndexStr(String v, String cellName, List<String> vc) {
-        int idx = 0;
-        for(String c: vc) {
-            if(c.equals(v)) {
-                break;
-            }
-            idx++;
-        }
-        if(idx >= vc.size()) {
-            vc.add(v);
+    private static String getCellIndexStr(String v, String cellName, Map<String, Integer> vc) {
+        Integer idx = vc.get(v);
+        if(idx == null) {
+            idx = vc.size();
+            vc.put(v, idx);
         }
         return "<c r=\""+cellName+"\" t=\"s\"><v>"+idx+"</v></c>";
+    }
+
+    private static String escapeXml(String s) {
+        if(s == null || s.isEmpty()) {
+            return s;
+        }
+        StringBuilder sb = null;
+        for(int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            String rep;
+            switch(ch) {
+                case '&': rep = "&amp;"; break;
+                case '<': rep = "&lt;"; break;
+                case '>': rep = "&gt;"; break;
+                case '"': rep = "&quot;"; break;
+                default: rep = null;
+            }
+            if(rep != null) {
+                if(sb == null) {
+                    sb = new StringBuilder(s.length() + 16);
+                    sb.append(s, 0, i);
+                }
+                sb.append(rep);
+            } else if(sb != null) {
+                sb.append(ch);
+            }
+        }
+        return sb == null ? s : sb.toString();
     }
 
     public static byte[] saveAsXlsxBytes(List<SimpleSheet> sheets) throws IOException {

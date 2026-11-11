@@ -207,16 +207,16 @@ public class InstructionTable {
 		    "goto_w",
 		    "jsr_w"
 		   };
-	
+
 	public static String get(int index) {
 		return TABLE[index];
 	}
-	
+
 	public static String get(byte opcode) {
 		int idx = (int)opcode;
 		return TABLE[idx < 0 ? idx + 256 : idx];
 	}
-	
+
 	public static byte getInstructionCode(String instruction) {
 		for(int i = 0; i < TABLE.length; i++) {
 			if(TABLE[i].equals(instruction)) {
@@ -227,10 +227,11 @@ public class InstructionTable {
 	}
 
 	public static Pair<Integer, Integer> calculateMaxs(byte[] code) {
-		int maxStack = 0, maxLocals = 0;
-		int padding;
+		int maxStack = 0, maxLocals = 0, cur = 0;
 		for(int i = 0; i < code.length; i++) {
-			switch(code[i]) {
+			int delta = 0, len = 0;
+			int op = code[i] & 0xFF;
+			switch(op) {
 			    case 0:        //nop
 			        break;
 			    case 1:        //aconst_null
@@ -241,310 +242,339 @@ public class InstructionTable {
 			    case 6:        //iconst_3
 			    case 7:        //iconst_4
 			    case 8:        //iconst_5
-			    	maxStack++;
-			    	maxLocals++;
+			    case 11:       //fconst_0
+			    case 12:       //fconst_1
+			    case 13:       //fconst_2
+			    	delta = 1;
 			    	break;
 			    case 9:        //lconst_0
-			    case 10:        //lconst_1
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 10:       //lconst_1
+			    case 14:       //dconst_0
+			    case 15:       //dconst_1
+			    	delta = 2;
 			    	break;
-			    case 11:        //fconst_0
-			    case 12:        //fconst_1
-			    case 13:        //fconst_2
-			    case 14:        //dconst_0
-			    case 15:        //dconst_1
-			    case 16:        //bipush
-			    	i++;
-			    	maxStack++;
-			    	maxLocals++;
+			    case 16:       //bipush
+			    	len = 1;
+			    	delta = 1;
 			        break;
-			    case 17:        //sipush
-			    	i += 2;
-			    	maxStack++;
-			    	maxLocals++;
+			    case 17:       //sipush
+			    	len = 2;
+			    	delta = 1;
 			        break;
-			    case 18:        //ldc
-			    	i += 2;
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 18:       //ldc
+			    	len = 1;
+			    	delta = 1;
 			        break;
-			    case 19:        //ldc_w
-			    case 20:        //ldc2_w
-			    	i += 3;
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 19:       //ldc_w
+			    	len = 2;
+			    	delta = 1;
 			        break;
-			    case 21:        //iload
-			    	i += 2;
-			    	maxStack++;
-			    	maxLocals++;
+			    case 20:       //ldc2_w
+			    	len = 2;
+			    	delta = 2;
 			        break;
-			    case 22:        //lload
-			    case 23:        //fload
-			    case 24:        //dload
-			    case 25:        //aload
-			    	i += 2;
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 21:       //iload
+			    case 23:       //fload
+			    case 25:       //aload
+			    	len = 1;
+			    	delta = 1;
+			    	maxLocals = Math.max(maxLocals, (code[i + 1] & 0xFF) + 1);
 			        break;
-			    case 26:        //iload_0
-			    case 27:        //iload_1
-			    case 28:        //iload_2
-			    case 29:        //iload_3
-			    	maxStack++;
-			    	maxLocals++;
+			    case 22:       //lload
+			    case 24:       //dload
+			    	len = 1;
+			    	delta = 2;
+			    	maxLocals = Math.max(maxLocals, (code[i + 1] & 0xFF) + 2);
 			        break;
-			    case 30:        //lload_0
-			    case 31:        //lload_1
-			    case 32:        //lload_2
-			    case 33:        //lload_3
-			    case 34:        //fload_0
-			    case 35:        //fload_1
-			    case 36:        //fload_2
-			    case 37:        //fload_3
-			    case 38:        //dload_0
-			    case 39:        //dload_1
-			    case 40:        //dload_2
-			    case 41:        //dload_3
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 26: case 27: case 28: case 29:        //iload_0..3
+			    	delta = 1;
+			    	maxLocals = Math.max(maxLocals, op - 25);
 			        break;
-			    case 42:        //aload_0
-			    case 43:        //aload_1
-			    case 44:        //aload_2
-			    case 45:        //aload_3
-			    	maxStack++;
-			    	maxLocals++;
+			    case 30: case 31: case 32: case 33:        //lload_0..3
+			    	delta = 2;
+			    	maxLocals = Math.max(maxLocals, op - 28);
 			        break;
-			    case 46:        //iaload
-			    case 47:        //laload
-			    case 48:        //faload
-			    case 49:        //daload
-			    case 50:        //aaload
-			    case 51:        //baload
-			    case 52:        //caload
-			    case 53:        //saload
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 34: case 35: case 36: case 37:        //fload_0..3
+			    	delta = 1;
+			    	maxLocals = Math.max(maxLocals, op - 33);
 			        break;
-			    case 54:        //istore
-			    case 55:        //lstore
-			    case 56:        //fstore
-			    case 57:        //dstore
-			    case 58:        //astore
-			    	i++;
+			    case 38: case 39: case 40: case 41:        //dload_0..3
+			    	delta = 2;
+			    	maxLocals = Math.max(maxLocals, op - 36);
+			        break;
+			    case 42: case 43: case 44: case 45:        //aload_0..3
+			    	delta = 1;
+			    	maxLocals = Math.max(maxLocals, op - 41);
+			        break;
+			    case 46:       //iaload
+			    case 48:       //faload
+			    case 50:       //aaload
+			    case 51:       //baload
+			    case 52:       //caload
+			    case 53:       //saload
+			    	delta = -1;
+			        break;
+			    case 47:       //laload
+			    case 49:       //daload
+			        break;
+			    case 54:       //istore
+			    case 56:       //fstore
+			    case 58:       //astore
+			    	len = 1;
+			    	delta = -1;
+			    	maxLocals = Math.max(maxLocals, (code[i + 1] & 0xFF) + 1);
 			    	break;
-			    case 59:        //istore_0
-			    case 60:        //istore_1
-			    case 61:        //istore_2
-			    case 62:        //istore_3
-			    case 63:        //lstore_0
-			    case 64:        //lstore_1
-			    case 65:        //lstore_2
-			    case 66:        //lstore_3
-			    case 67:        //fstore_0
-			    case 68:        //fstore_1
-			    case 69:        //fstore_2
-			    case 70:        //fstore_3
-			    case 71:        //dstore_0
-			    case 72:        //dstore_1
-			    case 73:        //dstore_2
-			    case 74:        //dstore_3
-			    case 75:        //astore_0
-			    case 76:        //astore_1
-			    case 77:        //astore_2
-			    case 78:        //astore_3
-			    case 79:        //iastore
-			    case 80:        //lastore
-			    case 81:        //fastore
-			    case 82:        //dastore
-			    case 83:        //aastore
-			    case 84:        //bastore
-			    case 85:        //castore
-			    case 86:        //sastore
-			    case 87:        //pop
-			    case 88:        //pop2
+			    case 55:       //lstore
+			    case 57:       //dstore
+			    	len = 1;
+			    	delta = -2;
+			    	maxLocals = Math.max(maxLocals, (code[i + 1] & 0xFF) + 2);
 			    	break;
-			    case 89:        //dup
-			    case 90:        //dup_x1
-			    case 91:        //dup_x2
-			    case 92:        //dup2
-			    case 93:        //dup2_x1
-			    case 94:        //dup2_x2
-			    	maxStack++;
-			    	maxLocals++;
-			        break;
-			    case 95:        //swap
-			    case 96:        //iadd
-			    case 97:        //ladd
-			    case 98:        //fadd
-			    case 99:        //dadd
-			    case 100:        //isub
-			    case 101:        //lsub
-			    case 102:        //fsub
-			    case 103:        //dsub
-			    case 104:        //imul
-			    case 105:        //lmul
-			    case 106:        //fmul
-			    case 107:        //dmul
-			    case 108:        //idiv
-			    case 109:        //ldiv
-			    case 110:        //fdiv
-			    case 111:        //ddiv
-			    case 112:        //irem
-			    case 113:        //lrem
-			    case 114:        //frem
-			    case 115:        //drem
-			    case 116:        //ineg
-			    case 117:        //lneg
-			    case 118:        //fneg
-			    case 119:        //dneg
-			    case 120:        //ishl
-			    case 121:        //lshl
-			    case 122:        //ishr
-			    case 123:        //lshr
-			    case 124:        //iushr
-			    case 125:        //lushr
-			    case 126:        //iand
-			    case 127:        //land
-			    case -128:        //ior
-			    case -127:        //lor
-			    case -126:        //ixor
-			    case -125:        //lxor
-			    case -124:        //iinc
-			    case -123:        //i2l
-			    case -122:        //i2f
-			    case -121:        //i2d
-			    case -120:        //l2i
-			    case -119:        //l2f
-			    case -118:        //l2d
-			    case -117:        //f2i
-			    case -116:        //f2l
-			    case -115:        //f2d
-			    case -114:        //d2i
-			    case -113:        //d2l
-			    case -112:        //d2f
-			    case -111:        //i2b
-			    case -110:        //i2c
-			    case -109:        //i2s
-			    case -108:        //lcmp
-			    case -107:        //fcmpl
-			    case -106:        //fcmpg
-			    case -105:        //dcmpl
-			    case -104:        //dcmpg
-			        break;
-			    case -103:        //ifeq
-			    case -102:        //ifne
-			    case -101:        //iflt
-			    case -100:        //ifge
-			    case -99:        //ifgt
-			    case -98:        //ifle
-			    case -97:        //if_icmpeq
-			    case -96:        //if_icmpne
-			    case -95:        //if_icmplt
-			    case -94:        //if_icmpge
-			    case -93:        //if_icmpgt
-			    case -92:        //if_icmple
-			    case -91:        //if_acmpeq
-			    case -90:        //if_acmpne
-			    case -89:        //goto
-			    	i += 2;
-			        break;
-			    case -88:        //jsr
-			    	i += 2;
-			    	maxStack++;
-			    	maxLocals++;
-			        break;
-			    case -87:        //ret
-			    	i++;
-			    	maxStack++;
-			    	maxLocals++;
-			        break;
-			    case -86:        //tableswitch
-			    	padding = (4 - (i + 1) % 4) % 4;
-			    	i += padding + 16;
-			    	maxStack++;
-			    	maxLocals++;
-			        break;
-			    case -85:        //lookupswitch
-			    	padding = (4 - (i + 1) % 4) % 4;
-			    	i += padding + 32;
-			    	maxStack++;
-			    	maxLocals++;
-			        break;
-			    case -84:        //ireturn
-			        break;
-			    case -83:        //lreturn
-			    case -82:        //freturn
-			    case -81:        //dreturn
-			    case -80:        //areturn
-			    case -79:        //return
+			    case 59: case 60: case 61: case 62:        //istore_0..3
+			    	delta = -1;
+			    	maxLocals = Math.max(maxLocals, op - 58);
 			    	break;
-			    case -78:        //getstatic
-			    case -77:        //putstatic
-			    case -76:        //getfield
-			    case -75:        //putfield
-			    case -74:        //invokevirtual
-			    case -73:        //invokespecial
-			    case -72:        //invokestatic
-			    	i += 2;
+			    case 63: case 64: case 65: case 66:        //lstore_0..3
+			    	delta = -2;
+			    	maxLocals = Math.max(maxLocals, op - 61);
+			    	break;
+			    case 67: case 68: case 69: case 70:        //fstore_0..3
+			    	delta = -1;
+			    	maxLocals = Math.max(maxLocals, op - 66);
+			    	break;
+			    case 71: case 72: case 73: case 74:        //dstore_0..3
+			    	delta = -2;
+			    	maxLocals = Math.max(maxLocals, op - 69);
+			    	break;
+			    case 75: case 76: case 77: case 78:        //astore_0..3
+			    	delta = -1;
+			    	maxLocals = Math.max(maxLocals, op - 74);
+			    	break;
+			    case 79:       //iastore
+			    case 81:       //fastore
+			    case 83:       //aastore
+			    case 84:       //bastore
+			    case 85:       //castore
+			    case 86:       //sastore
+			    	delta = -3;
+			    	break;
+			    case 80:       //lastore
+			    case 82:       //dastore
+			    	delta = -4;
+			    	break;
+			    case 87:       //pop
+			    	delta = -1;
+			    	break;
+			    case 88:       //pop2
+			    	delta = -2;
+			    	break;
+			    case 89:       //dup
+			    case 90:       //dup_x1
+			    case 91:       //dup_x2
+			    	delta = 1;
 			        break;
-			    case -71:        //invokeinterface
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 92:       //dup2
+			    case 93:       //dup2_x1
+			    case 94:       //dup2_x2
+			    	delta = 2;
 			        break;
-			    case -70:        //--
+			    case 95:       //swap
+			    case 116:      //ineg
+			    case 117:      //lneg
+			    case 118:      //fneg
+			    case 119:      //dneg
+			    case 134:      //i2f
+			    case 138:      //l2d
+			    case 139:      //f2i
+			    case 143:      //d2l
+			    case 145:      //i2b
+			    case 146:      //i2c
+			    case 147:      //i2s
 			        break;
-			    case -69:        //new
-			    case -68:        //newarray
-			    case -67:        //anewarray
-			    	i += 4;
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 96: case 98: case 100: case 102:      //iadd fadd isub fsub
+			    case 104: case 106: case 108: case 110:    //imul fmul idiv fdiv
+			    case 112: case 114:                        //irem frem
+			    case 120: case 121: case 122:              //ishl lshl ishr
+			    case 123: case 124: case 125:              //lshr iushr lushr
+			    case 126: case 128: case 130:              //iand ior ixor
+			    case 149: case 150:                        //fcmpl fcmpg
+			    	delta = -1;
 			        break;
-			    case -66:        //arraylength
-			    	maxStack++;
-			    	maxLocals++;
+			    case 97: case 99: case 101: case 103:      //ladd dadd lsub dsub
+			    case 105: case 107: case 109: case 111:    //lmul dmul ldiv ddiv
+			    case 113: case 115:                        //lrem drem
+			    case 127: case 129: case 131:              //land lor lxor
+			    	delta = -2;
 			        break;
-			    case -65:        //athrow
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 132:      //iinc
+			    	len = 2;
+			    	maxLocals = Math.max(maxLocals, (code[i + 1] & 0xFF) + 1);
 			        break;
-			    case -64:        //checkcast
-			    case -63:        //instanceof
-			    	i += 2;
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 133:      //i2l
+			    case 135:      //i2d
+			    case 140:      //f2l
+			    case 141:      //f2d
+			    	delta = 1;
 			        break;
-			    case -62:        //monitorenter
-			    case -61:        //monitorexit
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 136:      //l2i
+			    case 137:      //l2f
+			    case 142:      //d2i
+			    case 144:      //d2f
+			    	delta = -1;
 			        break;
-			    case -60:        //wide
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 148:      //lcmp
+			    case 151:      //dcmpl
+			    case 152:      //dcmpg
+			    	delta = -3;
 			        break;
-			    case -59:        //multianewarray
-			    	i += 3;
-			    	maxStack += 2;
-			    	maxLocals += 2;
+			    case 153: case 154: case 155:              //ifeq ifne iflt
+			    case 156: case 157: case 158:              //ifge ifgt ifle
+			    case 198: case 199:                        //ifnull ifnonnull
+			    	len = 2;
+			    	delta = -1;
 			        break;
-			    case -58:        //ifnull
-			    case -57:        //ifnonnull
-			    	i += 2;
-			    	maxStack++;
-			    	maxLocals++;
+			    case 159: case 160: case 161:              //if_icmpeq if_icmpne if_icmplt
+			    case 162: case 163: case 164:              //if_icmpge if_icmpgt if_icmple
+			    case 165: case 166:                        //if_acmpeq if_acmpne
+			    	len = 2;
+			    	delta = -2;
 			        break;
-			    case -56:        //goto_w
-			    case -55:        //jsr_w
-			    	i += 4;
+			    case 167:      //goto
+			    	len = 2;
+			        break;
+			    case 168:      //jsr
+			    	len = 2;
+			    	delta = 1;
+			        break;
+			    case 169:      //ret
+			    	len = 1;
+			    	maxLocals = Math.max(maxLocals, (code[i + 1] & 0xFF) + 1);
+			        break;
+			    case 170: {    //tableswitch
+			    	int pad = (4 - ((i + 1) & 3)) & 3;
+			    	int low = readInt32(code, i + pad + 5);
+			    	int high = readInt32(code, i + pad + 9);
+			    	len = pad + 12 + 4 * (high - low + 1);
+			    	delta = -1;
+			        break;
+			    }
+			    case 171: {    //lookupswitch
+			    	int pad = (4 - ((i + 1) & 3)) & 3;
+			    	int npairs = readInt32(code, i + pad + 5);
+			    	len = pad + 8 + 8 * npairs;
+			    	delta = -1;
+			        break;
+			    }
+			    case 172:      //ireturn
+			    case 174:      //freturn
+			    case 176:      //areturn
+			    	delta = -1;
+			        break;
+			    case 173:      //lreturn
+			    case 175:      //dreturn
+			    	delta = -2;
+			        break;
+			    case 177:      //return
+			    	break;
+			    //字段/方法相关指令的栈深度变化取决于常量池描述符，此处按双槽上界保守估计，
+			    //保证声明的 max_stack 不小于真实峰值
+			    case 178:      //getstatic
+			    case 180:      //getfield
+			    case 182:      //invokevirtual
+			    case 183:      //invokespecial
+			    case 184:      //invokestatic
+			    	len = 2;
+			    	delta = 2;
+			        break;
+			    case 179:      //putstatic
+			    case 181:      //putfield
+			    	len = 2;
+			        break;
+			    case 185:      //invokeinterface
+			    case 186:      //invokedynamic
+			    	len = 4;
+			    	delta = 2;
+			        break;
+			    case 187:      //new
+			    	len = 2;
+			    	delta = 1;
+			        break;
+			    case 188:      //newarray
+			    	len = 1;
+			        break;
+			    case 189:      //anewarray
+			    	len = 2;
+			        break;
+			    case 190:      //arraylength
+			        break;
+			    case 191:      //athrow
+			    case 194:      //monitorenter
+			    case 195:      //monitorexit
+			    	delta = -1;
+			        break;
+			    case 192:      //checkcast
+			    case 193:      //instanceof
+			    	len = 2;
+			        break;
+			    case 196: {    //wide
+			    	int sub = code[i + 1] & 0xFF;
+			    	int idx = ((code[i + 2] & 0xFF) << 8) | (code[i + 3] & 0xFF);
+			    	if(sub == 132) {           //wide iinc
+			    		len = 5;
+			    		maxLocals = Math.max(maxLocals, idx + 1);
+			    	} else {
+			    		len = 3;
+			    		switch(sub) {
+			    		    case 21: case 23: case 25:       //iload fload aload
+			    		    	delta = 1;
+			    		    	maxLocals = Math.max(maxLocals, idx + 1);
+			    		    	break;
+			    		    case 22: case 24:                //lload dload
+			    		    	delta = 2;
+			    		    	maxLocals = Math.max(maxLocals, idx + 2);
+			    		    	break;
+			    		    case 54: case 56: case 58:       //istore fstore astore
+			    		    	delta = -1;
+			    		    	maxLocals = Math.max(maxLocals, idx + 1);
+			    		    	break;
+			    		    case 55: case 57:                //lstore dstore
+			    		    	delta = -2;
+			    		    	maxLocals = Math.max(maxLocals, idx + 2);
+			    		    	break;
+			    		    default:                         //ret
+			    		    	maxLocals = Math.max(maxLocals, idx + 1);
+			    		}
+			    	}
+			        break;
+			    }
+			    case 197:      //multianewarray
+			    	len = 3;
+			    	delta = 1 - (code[i + 3] & 0xFF);
+			        break;
+			    case 200:      //goto_w
+			    	len = 4;
+			        break;
+			    case 201:      //jsr_w
+			    	len = 4;
+			    	delta = 1;
 			        break;
 			    default:
-			    	throw new BytecodeException("Invalid code instruction " + code[i]);
+			    	throw new BytecodeException("Invalid code instruction " + op);
 			}
+			cur += delta;
+			if(cur < 0) {
+				cur = 0;
+			}
+			if(cur > maxStack) {
+				maxStack = cur;
+			}
+			i += len;
 		}
 		return new Pair<>(maxStack, maxLocals);
+	}
+
+	private static int readInt32(byte[] code, int off) {
+		return ((code[off] & 0xFF) << 24) | ((code[off + 1] & 0xFF) << 16)
+				| ((code[off + 2] & 0xFF) << 8) | (code[off + 3] & 0xFF);
 	}
 }

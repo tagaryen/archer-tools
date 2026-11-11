@@ -75,7 +75,7 @@ public class DescriptorUtil {
 		if(desc.charAt(0) == 'L') {
 			return desc.substring(1, desc.length()-1);
 		}
-		if(desc.length() > 2 && desc.charAt(0) == '[' && desc.charAt(0) == 'L') {
+		if(desc.length() > 2 && desc.charAt(0) == '[' && desc.charAt(1) == 'L') {
 			return '[' + desc.substring(2, desc.length()-1);
 		}
 		return desc;

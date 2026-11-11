@@ -28,7 +28,7 @@ public class ConstantInvokeDynamic extends ConstantInfo {
     }
     @Override
     public void write(Bytes bytes) {
-    	bytes.writeInt32(bootstrapMethodAttrIndex);
-    	bytes.writeInt32(nameAndTypeIndex);
+    	bytes.writeInt16(bootstrapMethodAttrIndex);
+    	bytes.writeInt16(nameAndTypeIndex);
     }
 }
