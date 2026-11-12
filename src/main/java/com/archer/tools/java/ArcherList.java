@@ -9,7 +9,7 @@ public class ArcherList<E> implements List<E> {
     private boolean hasNull = false;
 
     public ArcherList() {
-        this(32);
+        this(64);
     }
 
     public ArcherList(int cap) {
