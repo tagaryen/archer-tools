@@ -9,10 +9,13 @@ public class ArcherList<E> implements List<E> {
     private boolean hasNull = false;
 
     public ArcherList() {
-        this(64);
+        this(16);
     }
 
     public ArcherList(int cap) {
+        if(cap < 0) {
+            throw new IllegalArgumentException("cap must not be negative");
+        }
         data = new Object[cap];
     }
 
@@ -21,6 +24,7 @@ public class ArcherList<E> implements List<E> {
     public ArcherList(E... es) {
         data = es;
         size = es.length;
+        checkNull();
     }
 
     public ArcherList(Collection<E> c) {
@@ -32,6 +36,19 @@ public class ArcherList<E> implements List<E> {
         this.data = data;
         this.size = size;
         checkNull();
+    }
+
+    private void ensureCapacity(int minCap) {
+        if(minCap > data.length) {
+            int newCap = data.length + (data.length >> 1);
+            if(newCap < minCap) {
+                newCap = minCap;
+            }
+            if(newCap < 8) {
+                newCap = 8;
+            }
+            data = Arrays.copyOf(data, newCap);
+        }
     }
 
     @Override
@@ -49,12 +66,7 @@ public class ArcherList<E> implements List<E> {
         if(o == null) {
             return hasNull;
         }
-        for(int i = 0; i < size; i++) {
-            if(o.equals(data[i])) {
-                return true;
-            }
-        }
-        return false;
+        return indexOf(o) >= 0;
     }
 
     @Override
@@ -65,24 +77,25 @@ public class ArcherList<E> implements List<E> {
 
     @Override
     public Object[] toArray() {
-        Object[] ret = new Object[size];
-        System.arraycopy(data, 0, ret, 0, data.length);
-        return ret;
+        return Arrays.copyOf(data, size);
     }
 
     @Override
     @SuppressWarnings(value = "unchecked")
     public <T> T[] toArray(T[] a) {
-        return (T[]) toArray();
+        if(a.length < size) {
+            return (T[]) Arrays.copyOf(data, size, a.getClass());
+        }
+        System.arraycopy(data, 0, a, 0, size);
+        if(a.length > size) {
+            a[size] = null;
+        }
+        return a;
     }
 
     @Override
     public boolean add(E e) {
-        if(size == data.length) {
-            Object[] nd = new Object[data.length * 2];
-            System.arraycopy(data, 0, nd, 0, data.length);
-            data = nd;
-        }
+        ensureCapacity(size + 1);
         data[size++] = e;
         if(e == null) {
             hasNull = true;
@@ -92,32 +105,23 @@ public class ArcherList<E> implements List<E> {
 
     @Override
     public boolean remove(Object o) {
-        int i = 0;
-        boolean isNull = false;
-        for(; i < size; i++) {
-            if(o == null) {
-                if(data[i] == null) {
-                    isNull = true;
-                    break;
-                }
-            } else if(o.equals(data[i])) {
-                break;
-            }
+        int i = indexOf(o);
+        if(i < 0) {
+            return false;
         }
-        i++;
-        if(isNull) {
-            this.hasNull = false;
-        }
-        if(i < size) {
-            for(; i < size; i++) {
-                data[i-1] = data[i];
-                if(data[i] == null) {
-                    this.hasNull = true;
-                }
-            }
-            size--;
+        removeAt(i);
+        if(o == null) {
+            checkNull();
         }
         return true;
+    }
+
+    private void removeAt(int index) {
+        int moved = size - index - 1;
+        if(moved > 0) {
+            System.arraycopy(data, index + 1, data, index, moved);
+        }
+        data[--size] = null;
     }
 
     @Override
@@ -125,21 +129,8 @@ public class ArcherList<E> implements List<E> {
         if(c == null || c.isEmpty()) {
             return true;
         }
-        boolean ok = true;
-        for(int i = 0; i < size; i++) {
-            ok = false;
-            for(Object o: c) {
-                if(o == null) {
-                    if(data[i] == null) {
-                        ok = true;
-                        break;
-                    }
-                } else if(o.equals(data[i])) {
-                    ok = true;
-                    break;
-                }
-            }
-            if(!ok) {
+        for(Object o: c) {
+            if(!contains(o)) {
                 return false;
             }
         }
@@ -149,17 +140,18 @@ public class ArcherList<E> implements List<E> {
     @Override
     public boolean addAll(Collection<? extends E> c) {
         if(c == null || c.isEmpty()) {
-            return true;
+            return false;
         }
-        if(size + c.size() > data.length) {
-            Object[] nd = new Object[(data.length +c.size()) * 2];
-            System.arraycopy(data, 0, nd, 0, data.length);
-            data = nd;
-        }
-        for(Object o: c) {
-            data[size++] = o;
-            if(o == null) {
-                hasNull = true;
+        Object[] arr = c.toArray();
+        ensureCapacity(size + arr.length);
+        System.arraycopy(arr, 0, data, size, arr.length);
+        size += arr.length;
+        if(!hasNull) {
+            for(Object o: arr) {
+                if(o == null) {
+                    hasNull = true;
+                    break;
+                }
             }
         }
         return true;
@@ -168,66 +160,75 @@ public class ArcherList<E> implements List<E> {
     @Override
     public boolean addAll(int index, Collection<? extends E> c) {
         if(c == null || c.isEmpty()) {
-            return true;
+            return false;
         }
         if(index < 0) {
             index = 0;
-        } else if(index >= size) {
+        } else if(index > size) {
             index = size;
         }
-        Object[] nd = new Object[(data.length +c.size())];
-        System.arraycopy(data, 0, nd, 0, index);
-        int i = index;
-        for(Object o: c) {
-            nd[i++] = o;
-            if(o == null) {
-                hasNull = true;
+        Object[] arr = c.toArray();
+        ensureCapacity(size + arr.length);
+        int moved = size - index;
+        if(moved > 0) {
+            System.arraycopy(data, index, data, index + arr.length, moved);
+        }
+        System.arraycopy(arr, 0, data, index, arr.length);
+        size += arr.length;
+        if(!hasNull) {
+            for(Object o: arr) {
+                if(o == null) {
+                    hasNull = true;
+                    break;
+                }
             }
         }
-        System.arraycopy(data, index, nd, i, size  - index);
-        data = nd;
-        size += c.size();
         return true;
     }
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        for(Object o: c) {
-            remove(o);
+        if(c == null || c.isEmpty()) {
+            return false;
         }
-        return true;
+        boolean modified = false;
+        for(Object o: c) {
+            while(remove(o)) {
+                modified = true;
+            }
+        }
+        return modified;
     }
 
     @Override
     public boolean retainAll(Collection<?> c) {
         if(c == null || c.isEmpty()) {
+            if(size == 0) {
+                return false;
+            }
+            Arrays.fill(data, 0, size, null);
             size = 0;
+            hasNull = false;
             return true;
         }
-        int idx = 0;
-        Object[] nd = new Object[data.length];
-        hasNull = false;
+        int w = 0;
         for(int i = 0; i < size; i++) {
-            for(Object o: c) {
-                if(o == null) {
-                    if(data[i] == null) {
-                        nd[idx++] = null;
-                        hasNull = true;
-                        break;
-                    }
-                } else if(o.equals(data[i])) {
-                    nd[idx++] = o;
-                    break;
-                }
+            if(c.contains(data[i])) {
+                data[w++] = data[i];
             }
         }
-        data = nd;
-        size = idx;
+        if(w == size) {
+            return false;
+        }
+        Arrays.fill(data, w, size, null);
+        size = w;
+        checkNull();
         return true;
     }
 
     @Override
     public void clear() {
+        Arrays.fill(data, 0, size, null);
         size = 0;
         hasNull = false;
     }
@@ -253,6 +254,8 @@ public class ArcherList<E> implements List<E> {
         data[index] = element;
         if(element == null) {
             hasNull = true;
+        } else if(old == null && hasNull) {
+            checkNull();
         }
         return (E) old;
     }
@@ -261,19 +264,19 @@ public class ArcherList<E> implements List<E> {
     public void add(int index, E element) {
         if(index < 0) {
             index = 0;
-        } else if(index >= size) {
+        } else if(index > size) {
             index = size;
         }
-        if(size >= data.length) {
-            Object[] nd = new Object[data.length * 2];
-            System.arraycopy(data, 0, nd, 0, data.length);
-            data = nd;
-        }
-        for(int i = size; i > index; i--) {
-            data[i] = data[i-1];
+        ensureCapacity(size + 1);
+        int moved = size - index;
+        if(moved > 0) {
+            System.arraycopy(data, index, data, index + 1, moved);
         }
         data[index] = element;
         size++;
+        if(element == null) {
+            hasNull = true;
+        }
     }
 
     @Override
@@ -285,10 +288,10 @@ public class ArcherList<E> implements List<E> {
             index = size - 1;
         }
         Object old = data[index];
-        for(int i = index ; i < size - 1; i++) {
-            data[i] = data[i+1];
+        removeAt(index);
+        if(old == null) {
+            checkNull();
         }
-        size--;
         return (E) old;
     }
 
@@ -350,14 +353,20 @@ public class ArcherList<E> implements List<E> {
         if(toIndex < fromIndex) {
             toIndex = fromIndex;
         }
-        int nSize = toIndex - fromIndex;
-        Object[] nd = new Object[nSize];
-        System.arraycopy(data, fromIndex, nd, 0, toIndex - fromIndex);
-        return new ArcherList<E>(nd, nSize);
+        Object[] nd = Arrays.copyOfRange(data, fromIndex, toIndex);
+        return new ArcherList<E>(nd, nd.length);
     }
 
     public String toString() {
-        return Arrays.toString(Arrays.copyOf(data, size));
+        StringBuilder sb = new StringBuilder(size * 8 + 2);
+        sb.append('[');
+        for(int i = 0; i < size; i++) {
+            if(i > 0) {
+                sb.append(", ");
+            }
+            sb.append(data[i]);
+        }
+        return sb.append(']').toString();
     }
 
     private void checkNull() {
@@ -456,10 +465,11 @@ public class ArcherList<E> implements List<E> {
             if(off < 0 || off >= size) {
                 return;
             }
-            for(int i = off ; i < size - 1; i++) {
-                es[i] = es[i+1];
+            int moved = size - off - 1;
+            if(moved > 0) {
+                System.arraycopy(es, off + 1, es, off, moved);
             }
-            size--;
+            es[--size] = null;
             off--;
         }
 
@@ -477,13 +487,9 @@ public class ArcherList<E> implements List<E> {
                 return;
             }
             if(size >= es.length) {
-                Object[] nd = new Object[es.length * 2];
-                System.arraycopy(es, 0, nd, 0, es.length);
-                es = nd;
+                es = Arrays.copyOf(es, es.length + (es.length >> 1) + 1);
             }
-            for(int i = size; i > off; i--) {
-                es[i] = es[i-1];
-            }
+            System.arraycopy(es, off, es, off + 1, size - off);
             es[off] = e;
             size++;
         }
